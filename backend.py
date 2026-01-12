@@ -16,9 +16,14 @@ def fetch_collection(col_name="all"):
 @app.route("/documents", methods=["GET"])
 def send_documents():
     return jsonify(all_docs)
+@app.route("/")
+def health():
+    return "Backend running 🚀"
 
 if __name__ == "__main__":
     all_docs = fetch_collection()
     print("FETCHED")
     app.run(debug=True)
+
+
 
