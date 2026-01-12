@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="icon" href="./assets/favicon.ico" type="image/x-icon">
+    <meta name="title" content="NIT Hamirpur Results">
+    <meta name="description" content="Official-style result portal for National Institute of Technology Hamirpur. View student grades, calculate SGPA/CGPA, analyze performance trends, and filter results by branch and batch. Features a modern Material You design with dark mode support.">
+    <meta name="keywords" content="NIT Hamirpur, NITH, Result, Student Result, SGPA Calculator, CGPA Calculator, Engineering, B.Tech, M.Tech, Architecture, Grades, Marksheet, Hamirpur, Himachal Pradesh, NIT, JEE Main, JOSAA, CSAB, Roll Number, Branch Wise Result, Batch Wise Result, Toppers List, Performance Graph">
+    <meta name="author" content="Nirusaki">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <meta name="revisit-after" content="1 days">
+    <meta name="generator" content="VS Code">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://result-nith-black.vercel.app/">
+    <meta property="og:title" content="NIT Hamirpur Result - Live Dashboard">
+    <meta property="og:description" content="Fast, responsive, and beautiful result portal for NITH students. Check your SGPA, CGPA, and ranks instantly with advanced filtering and visualization tools.">
+    <meta property="og:site_name" content="NITH Results">
+    <meta property="og:locale" content="en_IN">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://result-nith-black.vercel.app/">
+    <meta property="twitter:title" content="NIT Hamirpur Result - Live Dashboard">
+    <meta property="twitter:description" content="View NITH results with Material You aesthetics. Features: Dark Mode, Charts, PDF Export, and Class Rankings.">
+    <meta property="twitter:creator" content="@nirusaki">
+
+    <!-- Mobile Web App -->
+    <meta name="theme-color" content="#006D42">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="NITH Results">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NITH Results">
+    
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileColor" content="#006D42">
+    <meta name="msapplication-TileImage" content="/assets/mstile-144x144.png">
+    <meta name="msapplication-navbutton-color" content="#006D42">
+
+    <link rel="canonical" href="https://result-nith-black.vercel.app/">
+    <link rel="icon" type="image/png" href="./assets/favicon.ico">
+    <link rel="apple-touch-icon" href="./assets/favicon.ico">
+
+    <title>NITH Results</title>
+    
+    <!-- Google Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    
+    <!-- Chart.js for Graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+<div class="app-container">
+    
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Fetching Results...</div>
+    </div>
+
+    <!-- Header -->
+    <div class="header-section">
+        <div class="header-top-bar">
+            <div class="at-a-glance" id="dateWidget">
+                <span class="material-symbols-rounded" style="font-size: 18px;">calendar_today</span>
+                <span>Fetching date...</span>
+            </div>
+            
+            <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+                <span class="material-symbols-rounded" id="themeIcon">dark_mode</span>
+            </button>
+        </div>
+
+        <div class="header-title-area">
+            <div class="uni-supertitle">
+                <span class="material-symbols-rounded" style="font-size: 18px;">school</span>
+                NIT Hamirpur
+            </div>
+            <h1 class="page-title">Student <strong>Results</strong></h1>
+            <div class="uni-subtitle">National Institute of Technology Hamirpur</div>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-container" id="searchContainer">
+        <div class="search-bar">
+            <span class="material-symbols-rounded search-icon">search</span>
+            <input type="text" class="search-input" id="searchInput" placeholder="Search name or roll number...">
+        </div>
+    </div>
+
+    <!-- Filter & Sort Chips -->
+    <div class="filters-container">
+        <div class="chip-wrapper">
+            <button class="chip active" id="sortChipBtn">
+                <span class="material-symbols-rounded chip-icon">sort</span>
+                <span id="sortLabel">Sort by: Roll No</span>
+                <span class="material-symbols-rounded chip-icon" style="font-size: 16px;">arrow_drop_down</span>
+            </button>
+            <select id="sortSelect" onchange="applyFilters()">
+                <option value="roll">Roll Number</option>
+                <option value="cgpa">CGPA</option>
+                <option value="name">Name</option>
+            </select>
+        </div>
+
+        <div class="chip-wrapper">
+            <button class="chip" id="orderChipBtn">
+                <span class="material-symbols-rounded chip-icon" id="orderIcon">arrow_upward</span>
+                <span id="orderLabel">Ascending</span>
+                <span class="material-symbols-rounded chip-icon" style="font-size: 16px;">arrow_drop_down</span>
+            </button>
+            <select id="orderSelect" onchange="applyFilters()">
+                <option value="asc" selected>Ascending</option>
+                <option value="desc">Descending</option>
+            </select>
+        </div>
+
+        <div class="chip-wrapper">
+            <button class="chip" id="branchChipBtn">
+                <span class="material-symbols-rounded chip-icon">category</span>
+                <span id="branchLabel">All Branches</span>
+                <span class="material-symbols-rounded chip-icon" style="font-size: 16px;">arrow_drop_down</span>
+            </button>
+            <select id="branchSelect" onchange="applyFilters()">
+                <option value="All">All Branches</option>
+                <option value="BAR">Architecture (BAR)</option>
+                <option value="BCS">Computer Science (BCS)</option>
+                <option value="BEC">Electronics (BEC)</option>
+                <option value="BEE">Electrical (BEE)</option>
+                <option value="BME">Mechanical (BME)</option>
+                <option value="BCE">Civil (BCE)</option>
+                <option value="BCH">Chemical (BCH)</option>
+                <option value="BMA">Maths & Computing (BMA)</option>
+                <option value="BPH">Eng. Physics (BPH)</option>
+                <option value="BMS">Material Science (BMS)</option>
+                <option value="DCS">Dual Degree CS (DCS)</option>
+                <option value="DEC">Dual Degree ECE (DEC)</option>
+            </select>
+        </div>
+
+        <div class="chip-wrapper">
+            <button class="chip" id="batchChipBtn">
+                <span class="material-symbols-rounded chip-icon">date_range</span>
+                <span id="batchLabel">All Batches</span>
+                <span class="material-symbols-rounded chip-icon" style="font-size: 16px;">arrow_drop_down</span>
+            </button>
+            <select id="batchSelect" onchange="applyFilters()">
+                <option value="All">All Batches</option>
+                <option value="2024">2024 (Roll 20)</option>
+                <option value="2025">2025 (Roll 21)</option>
+                <option value="2026">2026 (Roll 22)</option>
+                <option value="2027">2027 (Roll 23)</option>
+                <option value="2028">2028 (Roll 24)</option>
+                <option value="2029">2029 (Roll 25)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow">
+        <div class="stat-widget primary">
+            <span class="material-symbols-rounded stat-icon">groups</span>
+            <div class="stat-label">Total Students</div>
+            <div class="stat-value" id="statTotal">0</div>
+        </div>
+        <div class="stat-widget secondary">
+            <span class="material-symbols-rounded stat-icon">analytics</span>
+            <div class="stat-label">Average CGPA</div>
+            <div class="stat-value" id="statAvg">0.00</div>
+        </div>
+        <div class="stat-widget tertiary">
+            <span class="material-symbols-rounded stat-icon">workspace_premium</span>
+            <div class="stat-label">Top Performer</div>
+            <div class="stat-value" id="statTop" style="font-size: 18px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</div>
+        </div>
+    </div>
+
+    <!-- Results Grid -->
+    <div class="results-grid" id="resultsGrid"></div>
+
+    <!-- Pagination Controls -->
+    <div id="paginationContainer" class="pagination-container"></div>
+
+    <!-- Footer -->
+    <div class="footer-credit" onclick="window.open('https://github.com/Nirusaki-Malaal', '_blank')">
+        Made By <span>Nirusaki</span>
+    </div>
+
+    <div style="height: 80px;"></div>
+
+    <!-- POPUP MODAL -->
+    <div class="modal-overlay" id="resultModal" onclick="handleModalClick(event)">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title-area">
+                    <div class="modal-name" id="modalStudentName">Student Name</div>
+                    <div class="modal-subtitle" id="modalStudentRoll">Roll No</div>
+                </div>
+                <button class="close-btn" onclick="closeModal()">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            
+            <div class="modal-content-body" id="modalBody">
+                 <div class="info-section" id="modalInfoSection"></div>
+                 
+                 <!-- Performance Graph -->
+                 <div class="graph-container">
+                     <canvas id="performanceChart"></canvas>
+                 </div>
+
+                 <div class="sem-tabs-row" id="modalTabsRow"></div>
+                 <div id="modalContentPanes"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+<script src="./script.js"></script>
+</body>
+</html>
