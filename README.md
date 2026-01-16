@@ -58,3 +58,6 @@ Make sure you have the following installed:
    ```bash
    git clone [https://github.com/Nirusaki-Malaal/nith-results-website.git](https://github.com/Nirusaki-Malaal/nith-results-website.git)
    cd nith-results-website
+   pip3 install -r requirements.txt
+   python3 app.py
+   ```
