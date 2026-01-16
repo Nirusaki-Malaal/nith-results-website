@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 from pymongo import MongoClient
 from flask_cors import CORS
 app = Flask(__name__)
@@ -17,6 +17,10 @@ def send_documents():
     return jsonify(all_docs)
 
     
+@app.route("/")
+def home():
+    name = "Mradul"
+    return render_template("index.html", username=name)
 
 
 
