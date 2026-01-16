@@ -10,7 +10,6 @@ db = client["results"]
 def fetch_collection(col_name="all"):
     return list(db[col_name].find({"student_info.roll_number": {"$nin": ["", None]}}, {"_id": 0}))
 all_docs = fetch_collection()
-print("FETCHED")
 
 @app.route("/documents", methods=["GET"])
 def send_documents():
@@ -23,7 +22,9 @@ def home():
     return render_template("index.html", username=name)
 
 if __name__ == "__main__":
+    fetch_collection()
     app.run(debug=True)
+
 
 
 
