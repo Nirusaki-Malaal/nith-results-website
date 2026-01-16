@@ -19,8 +19,11 @@ def send_documents():
     
 @app.route("/")
 def home():
-    name = "Mradul"
+    name = "nirusaki"
     return render_template("index.html", username=name)
+
+if __name__ == "__main__":
+    app.run(debug=True)
 
 
 
