@@ -56,7 +56,7 @@ Make sure you have the following installed:
 
 1. **Clone the repository**
    ```bash
-   git clone [https://github.com/Nirusaki-Malaal/nith-results-website.git](https://github.com/Nirusaki-Malaal/nith-results-website.git)
+   git clone https://github.com/Nirusaki-Malaal/nith-results-website.git
    cd nith-results-website
    pip3 install -r requirements.txt
    python3 app.py
