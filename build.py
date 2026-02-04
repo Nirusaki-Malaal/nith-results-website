@@ -111,7 +111,7 @@ def result_exists(rollnumber):
         return True
 
 
-url = 'mongodb+srv://nirusaki:nirusaki@cluster0.rrdouxd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
+url = ''
 cluster = MongoClient(url)
 db = cluster["results"]
 def year_exists(year: str): 
