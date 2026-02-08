@@ -24,7 +24,8 @@ def home():
 
 if __name__ == "__main__":
     fetch_collection()
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=8001)
+
 
 
 
