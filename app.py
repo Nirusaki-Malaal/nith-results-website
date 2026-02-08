@@ -1,9 +1,10 @@
 from flask import Flask, jsonify, render_template
 from pymongo import MongoClient
 from flask_cors import CORS
+
 app = Flask(__name__)
 CORS(app)
-url = os.environ["MONGO_URL"]
+url = "mongodb+srv://nirusaki:nirusaki@cluster0.rrdouxd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 client = MongoClient(url, maxPoolSize=100)
 db = client["results"]
 

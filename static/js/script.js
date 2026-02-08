@@ -107,7 +107,7 @@
         
         try {
             // Fetch data from Flask Backend
-            const res = await fetch("http://127.0.0.1:5000/documents");
+            const res = await fetch("/documents");
             
             if (!res.ok) {
                 throw new Error(`HTTP error! status: ${res.status}`);
@@ -231,13 +231,13 @@
         const icon = document.getElementById('themeIcon');
         icon.textContent = isDark ? 'light_mode' : 'dark_mode';
         
-        if(performanceChart) {
-            const style = getComputedStyle(document.body);
-            const onSurface = style.getPropertyValue('--md-sys-color-on-surface').trim();
-            const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
-            Chart.defaults.color = onSurface;
-            performanceChart.options.scales.y.grid.color = gridColor;
-            performanceChart.update();
+        // If a chart is active (modal open), rebuild it with correct theme colors
+        if (performanceChart) {
+            const chartData = performanceChart.data;
+            const labels = chartData.labels;
+            const sgpaData = chartData.datasets[0].data;
+            const cgpaData = chartData.datasets[1].data;
+            renderPerformanceChart(labels, sgpaData, cgpaData);
         }
     }
 
@@ -283,35 +283,150 @@
 
     // Chart Renderer
     function renderPerformanceChart(labels, sgpaData, cgpaData) {
-        const ctx = document.getElementById('performanceChart').getContext('2d');
+        const canvas = document.getElementById('performanceChart');
+        const ctx = canvas.getContext('2d');
         const style = getComputedStyle(document.body);
         const primary = style.getPropertyValue('--md-sys-color-primary').trim();
         const secondary = style.getPropertyValue('--md-sys-color-secondary').trim();
+        const tertiary = style.getPropertyValue('--md-sys-color-tertiary').trim();
         const surface = style.getPropertyValue('--md-sys-color-surface').trim();
         const onSurface = style.getPropertyValue('--md-sys-color-on-surface').trim();
+        const outlineVariant = style.getPropertyValue('--md-sys-color-outline-variant').trim();
         const isDark = document.body.classList.contains('dark-theme');
-        const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+        const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+        const isMobile = window.innerWidth <= 600;
 
-        if (performanceChart) performanceChart.destroy();
+        if (performanceChart) {
+            performanceChart.destroy();
+            performanceChart = null;
+        }
+
+        // Reset canvas dimensions to avoid stale sizing from previous render
+        canvas.style.width = '';
+        canvas.style.height = '';
+
+        // Compute dynamic y-axis min based on actual data
+        const allValues = [...sgpaData, ...cgpaData].filter(v => v > 0);
+        let yMin = allValues.length > 0 ? Math.floor(Math.min(...allValues)) - 1 : 0;
+        yMin = Math.max(yMin, 0);
 
         Chart.defaults.color = onSurface;
         Chart.defaults.font.family = "'Outfit', sans-serif";
+
+        // Create gradient fills
+        const sgpaGradient = ctx.createLinearGradient(0, 0, 0, canvas.parentElement.clientHeight || 220);
+        sgpaGradient.addColorStop(0, isDark ? 'rgba(160, 207, 208, 0.25)' : 'rgba(56, 102, 102, 0.15)');
+        sgpaGradient.addColorStop(1, 'transparent');
+
+        const cgpaGradient = ctx.createLinearGradient(0, 0, 0, canvas.parentElement.clientHeight || 220);
+        cgpaGradient.addColorStop(0, isDark ? 'rgba(154, 246, 183, 0.25)' : 'rgba(0, 109, 66, 0.12)');
+        cgpaGradient.addColorStop(1, 'transparent');
 
         performanceChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'SGPA', data: sgpaData, borderColor: secondary, backgroundColor: secondary, tension: 0.4, borderWidth: 2, pointRadius: 4 },
-                    { label: 'CGPA', data: cgpaData, borderColor: primary, backgroundColor: primary, tension: 0.4, borderWidth: 3, pointRadius: 5, pointBackgroundColor: surface, pointBorderWidth: 2 }
+                    {
+                        label: 'SGPA',
+                        data: sgpaData,
+                        borderColor: tertiary,
+                        backgroundColor: sgpaGradient,
+                        tension: 0.4,
+                        borderWidth: isMobile ? 2 : 2.5,
+                        pointRadius: isMobile ? 3 : 4,
+                        pointHoverRadius: isMobile ? 5 : 7,
+                        pointBackgroundColor: surface,
+                        pointBorderColor: tertiary,
+                        pointBorderWidth: 2,
+                        fill: true
+                    },
+                    {
+                        label: 'CGPA',
+                        data: cgpaData,
+                        borderColor: primary,
+                        backgroundColor: cgpaGradient,
+                        tension: 0.4,
+                        borderWidth: isMobile ? 2.5 : 3,
+                        pointRadius: isMobile ? 4 : 5,
+                        pointHoverRadius: isMobile ? 6 : 8,
+                        pointBackgroundColor: surface,
+                        pointBorderColor: primary,
+                        pointBorderWidth: 2,
+                        fill: true
+                    }
                 ]
             },
             options: {
-                responsive: true, maintainAspectRatio: false,
-                scales: { y: { beginAtZero: false, min: 4, max: 10, grid: { color: gridColor, drawBorder: false }, ticks: { stepSize: 1 } }, x: { grid: { display: false } } },
-                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 20 } } }
+                responsive: true,
+                maintainAspectRatio: false,
+                resizeDelay: 100,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: yMin,
+                        max: 10,
+                        grid: { color: gridColor, drawBorder: false },
+                        ticks: {
+                            stepSize: 1,
+                            font: { size: isMobile ? 10 : 12 },
+                            padding: isMobile ? 4 : 8
+                        },
+                        border: { display: false }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            font: { size: isMobile ? 10 : 12 },
+                            maxRotation: isMobile ? 45 : 0,
+                            padding: isMobile ? 4 : 8
+                        },
+                        border: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            boxWidth: 8,
+                            padding: isMobile ? 12 : 20,
+                            font: { size: isMobile ? 11 : 13 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: isDark ? 'rgba(30,35,32,0.95)' : 'rgba(255,255,255,0.95)',
+                        titleColor: onSurface,
+                        bodyColor: onSurface,
+                        borderColor: outlineVariant,
+                        borderWidth: 1,
+                        cornerRadius: 12,
+                        padding: { top: 10, bottom: 10, left: 14, right: 14 },
+                        titleFont: { family: "'Outfit', sans-serif", size: 13, weight: '600' },
+                        bodyFont: { family: "'Outfit', sans-serif", size: 12 },
+                        displayColors: true,
+                        boxPadding: 4,
+                        caretSize: 6,
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
+                            }
+                        }
+                    }
+                }
             }
         });
+
+        // Force resize after modal animation completes
+        setTimeout(() => {
+            if (performanceChart) {
+                performanceChart.resize();
+            }
+        }, 450);
     }
 
     function openResultModal(student) {
@@ -471,6 +586,14 @@
         renderPerformanceChart(chartLabels, chartSGPA, chartCGPA);
         modal.classList.add('open');
         document.body.style.overflow = 'hidden';
+
+        // Trigger a second resize after the modal's CSS transition finishes
+        // to ensure the chart fits correctly in the now-visible container
+        setTimeout(() => {
+            if (performanceChart) {
+                performanceChart.resize();
+            }
+        }, 500);
     }
     
     function switchTab(targetId, btnElement) {
@@ -535,66 +658,102 @@
             return;
         }
 
+        const isMobile = window.innerWidth <= 600;
+
         data.forEach((student, index) => {
             const card = document.createElement('div');
             card.className = `student-card`;
-            // Limit staggered animation to first 20 to prevent lag
-            const delay = index < 20 ? index * 50 : 0; 
+            const delay = index < 20 ? index * (isMobile ? 30 : 50) : 0; 
             card.style.animationDelay = `${delay}ms`;
             
-            // Calculate Rank
             const rank = startIndex + index + 1;
             let rankClass = 'rank-badge';
             if (rank === 1) rankClass += ' rank-1';
             else if (rank === 2) rankClass += ' rank-2';
             else if (rank === 3) rankClass += ' rank-3';
 
-            card.innerHTML = `
-                <div class="card-header-row">
-                    <div class="${rankClass}">#${rank}</div>
-                    <div style="display:flex; gap:4px;">
-                        <span class="mini-badge">${student.branch}</span>
-                        <span class="mini-badge" style="opacity:0.8">${student.batch}</span>
+            if (isMobile) {
+                // --- MOBILE: Horizontal list card ---
+                let mobileRankClass = 'mobile-rank-badge';
+                if (rank === 1) mobileRankClass += ' rank-1';
+                else if (rank === 2) mobileRankClass += ' rank-2';
+                else if (rank === 3) mobileRankClass += ' rank-3';
+
+                card.innerHTML = `
+                    <div class="card-avatar">${getInitials(student.name)}</div>
+                    
+                    <div class="card-info-area">
+                        <div class="card-name">${student.name}</div>
+                        <div class="card-roll">${student.roll}</div>
+                        <div class="mobile-meta-row">
+                            <span class="${mobileRankClass}">#${rank}</span>
+                            <span class="mobile-branch-tag">${student.branch}</span>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="card-avatar">${getInitials(student.name)}</div>
-                
-                <div class="card-info-area">
-                    <div class="card-name">${student.name}</div>
-                    <div class="card-roll">${student.roll}</div>
-                </div>
-                
-                <div class="card-stats-row">
-                    <div class="stat-box">
-                        <span class="stat-box-value">${student.sgpa.toFixed(2)}</span>
-                        <span class="stat-box-label">SGPA</span>
+                    
+                    <div class="card-stats-row">
+                        <div class="stat-box" style="background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container);">
+                            <span class="stat-box-value" style="color: inherit;">${student.cgpa.toFixed(2)}</span>
+                            <span class="stat-box-label" style="color: inherit;">CGPA</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-box-value">${student.sgpa.toFixed(2)}</span>
+                            <span class="stat-box-label">SGPA</span>
+                        </div>
                     </div>
-                    <div class="stat-box" style="background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container);">
-                        <span class="stat-box-value" style="color: inherit;">${student.cgpa.toFixed(2)}</span>
-                        <span class="stat-box-label" style="color: inherit;">CGPA</span>
+                `;
+            } else {
+                // --- DESKTOP: Square card ---
+                card.innerHTML = `
+                    <div class="card-header-row">
+                        <div class="${rankClass}">#${rank}</div>
+                        <div style="display:flex; gap:4px;">
+                            <span class="mini-badge">${student.branch}</span>
+                            <span class="mini-badge" style="opacity:0.8">${student.batch}</span>
+                        </div>
                     </div>
-                </div>
-            `;
+                    
+                    <div class="card-avatar">${getInitials(student.name)}</div>
+                    
+                    <div class="card-info-area">
+                        <div class="card-name">${student.name}</div>
+                        <div class="card-roll">${student.roll}</div>
+                    </div>
+                    
+                    <div class="card-stats-row">
+                        <div class="stat-box">
+                            <span class="stat-box-value">${student.sgpa.toFixed(2)}</span>
+                            <span class="stat-box-label">SGPA</span>
+                        </div>
+                        <div class="stat-box" style="background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container);">
+                            <span class="stat-box-value" style="color: inherit;">${student.cgpa.toFixed(2)}</span>
+                            <span class="stat-box-label" style="color: inherit;">CGPA</span>
+                        </div>
+                    </div>
+                `;
+            }
             
             card.onclick = () => openResultModal(student);
 
-            card.addEventListener('mousemove', (e) => {
-                card.style.transition = 'none';
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
-                const rotateX = ((y - centerY) / centerY) * -8; 
-                const rotateY = ((x - centerX) / centerX) * 8;
-                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
-            });
+            // 3D tilt effect only on desktop
+            if (!isMobile) {
+                card.addEventListener('mousemove', (e) => {
+                    card.style.transition = 'none';
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const rotateX = ((y - centerY) / centerY) * -6; 
+                    const rotateY = ((x - centerX) / centerX) * 6;
+                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
+                });
 
-            card.addEventListener('mouseleave', () => {
-                card.style.transition = 'transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)';
-                card.style.transform = `perspective(1000px) rotateX(0) rotateY(0) scale(1)`;
-            });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transition = 'transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                    card.style.transform = `perspective(1000px) rotateX(0) rotateY(0) scale(1)`;
+                });
+            }
 
             resultsGrid.appendChild(card);
         });
@@ -737,8 +896,29 @@
 
     window.addEventListener('scroll', () => {
         const container = document.getElementById('searchContainer');
+        const scrollBtn = document.getElementById('scrollTopBtn');
+        
         if (window.scrollY > 20) container.classList.add('scrolled');
         else container.classList.remove('scrolled');
+        
+        if (scrollBtn) {
+            if (window.scrollY > 400) scrollBtn.classList.add('visible');
+            else scrollBtn.classList.remove('visible');
+        }
+    });
+
+    // Re-render cards on resize (mobile <-> desktop layout switch)
+    let resizeTimer;
+    let lastWasMobile = window.innerWidth <= 600;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            const nowMobile = window.innerWidth <= 600;
+            if (nowMobile !== lastWasMobile) {
+                lastWasMobile = nowMobile;
+                updatePage();
+            }
+        }, 250);
     });
 
     // Start App

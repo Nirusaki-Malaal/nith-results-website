@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <link rel="icon" href="./assets/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="./static/assets/favicon.ico" type="image/x-icon">
     <meta name="title" content="NIT Hamirpur Results">
     <meta name="description" content="Official-style result portal for National Institute of Technology Hamirpur. View student grades, calculate SGPA/CGPA, analyze performance trends, and filter results by branch and batch. Features a modern Material You design with dark mode support.">
     <meta name="keywords" content="NIT Hamirpur, NITH, Result, Student Result, SGPA Calculator, CGPA Calculator, Engineering, B.Tech, M.Tech, Architecture, Grades, Marksheet, Hamirpur, Himachal Pradesh, NIT, JEE Main, JOSAA, CSAB, Roll Number, Branch Wise Result, Batch Wise Result, Toppers List, Performance Graph">
@@ -42,8 +42,8 @@
     <meta name="msapplication-navbutton-color" content="#006D42">
 
     <link rel="canonical" href="https://result-nith-black.vercel.app/">
-    <link rel="icon" type="image/png" href="./assets/favicon.ico">
-    <link rel="apple-touch-icon" href="./assets/favicon.ico">
+    <link rel="icon" type="image/png" href="./static/assets/favicon.ico">
+    <link rel="apple-touch-icon" href="./static/assets/favicon.ico">
 
     <title>NITH Results</title>
     
@@ -55,7 +55,7 @@
     
     <!-- Chart.js for Graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="./styles.css">
+    <link rel="stylesheet" href="./static/css/styles.css">
 </head>
 <body>
 
@@ -198,6 +198,11 @@
 
     <div style="height: 80px;"></div>
 
+    <!-- Scroll to Top Button -->
+    <button class="scroll-top-btn" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Scroll to top">
+        <span class="material-symbols-rounded" style="font-size: 24px;">arrow_upward</span>
+    </button>
+
     <!-- POPUP MODAL -->
     <div class="modal-overlay" id="resultModal" onclick="handleModalClick(event)">
         <div class="modal-card">
@@ -226,6 +231,6 @@
     </div>
 
 </div>
-<script src="./script.js"></script>
+<script src="./static/js/script.js"></script>
 </body>
 </html>
