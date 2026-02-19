@@ -61,3 +61,9 @@ Make sure you have the following installed:
    pip3 install -r requirements.txt
    python3 app.py
    ```
+
+
+## 📱 Flutter Client (new)
+
+A new Flutter app is now available in `nith_results_flutter/` and uses the same Flask backend endpoint (`/documents`).
+See `nith_results_flutter/README.md` for setup and run instructions.
