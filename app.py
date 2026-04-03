@@ -25,11 +25,12 @@ try:
     from dotenv import load_dotenv
 except ImportError:  # Optional during bootstrap before requirements are refreshed.
 
-    def load_dotenv():
+    def load_dotenv(dotenv_path=None):
         return False
 
 
-load_dotenv()
+basedir = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(dotenv_path=os.path.join(basedir, ".env"))
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
