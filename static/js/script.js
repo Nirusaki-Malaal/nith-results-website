@@ -1,273 +1,226 @@
-   // --- Global Chart Instance ---
-    let performanceChart = null;
-    
-    // --- Pagination State ---
-    let currentPage = 1;
-    const itemsPerPage = 100;
-    let allMatchingStudents = []; // Stores the full filtered list
+// --- Global State ---
+let performanceChart = null;
+let currentPage = 1;
+let currentPageStart = 0;
+let totalPages = 1;
+const itemsPerPage = 24;
+let allMatchingStudents = [];
+const studentDetailsCache = new Map();
+let resultsAbortController = null;
+let searchDebounceTimer = null;
 
-    // --- Audio & Haptics ---
-    // Fix: Lazy initialize AudioContext to prevent "start automatically" warnings
-    let audioCtx = null;
+// --- Audio & Haptics ---
+let audioCtx = null;
 
-    function initAudio() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume().catch(() => {});
-        }
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
 
-    // Initialize audio on first user interaction
-    document.addEventListener('click', initAudio, { once: true });
-    document.addEventListener('keydown', initAudio, { once: true });
-    document.addEventListener('touchstart', initAudio, { once: true });
-
-    function playClickSound() {
-        // Ensure initialized if called directly via onclick
-        if (!audioCtx) initAudio(); 
-        if (!audioCtx) return;
-
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.08);
-        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.08);
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
     }
-    
-    function playHoverSound() {
-        // Only play if context is initialized and running (prevents console warnings on load)
-        if (!audioCtx || audioCtx.state !== 'running') return;
+}
 
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.03);
-    }
+document.addEventListener('click', initAudio, { once: true });
+document.addEventListener('keydown', initAudio, { once: true });
+document.addEventListener('touchstart', initAudio, { once: true });
 
-    function triggerHaptic() {
-        if (navigator.vibrate) navigator.vibrate(10); 
+function playClickSound() {
+    if (!audioCtx) initAudio();
+    if (!audioCtx) return;
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.08);
+}
+
+function playHoverSound() {
+    if (!audioCtx || audioCtx.state !== 'running') return;
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.03);
+}
+
+function triggerHaptic() {
+    if (navigator.vibrate) navigator.vibrate(10);
+}
+
+document.addEventListener('mouseover', (event) => {
+    const target = event.target.closest('button, .student-card, .sem-tab, .chip');
+    if (target && (!event.relatedTarget || !target.contains(event.relatedTarget))) {
+        playHoverSound();
     }
-    
-    document.addEventListener('mouseover', (e) => {
-        const target = e.target.closest('button, .student-card, .sem-tab, .chip');
-        if (target && (!e.relatedTarget || !target.contains(e.relatedTarget))) {
-            playHoverSound();
-        }
+});
+
+// --- Formatting & Escaping ---
+const gradePoints = {
+    'AA': 10, 'A+': 10, 'O': 10, 'A': 10,
+    'AB': 9,
+    'BB': 8, 'B': 8,
+    'BC': 7, 'B-': 7,
+    'CC': 6, 'C': 6,
+    'CD': 5,
+    'D': 4,
+    'F': 0, 'I': 0
+};
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[char]));
+}
+
+function sanitizeClassName(value) {
+    return String(value ?? '').replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
+function formatFixedNumber(value, digits = 2) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number.toFixed(digits) : (0).toFixed(digits);
+}
+
+function formatCompactNumber(value, digits = 2) {
+    return formatFixedNumber(value, digits)
+        .replace(/\.00$/, '')
+        .replace(/(\.\d)0$/, '$1');
+}
+
+async function fetchJson(url, options = {}) {
+    const response = await fetch(url, {
+        headers: {
+            'Accept': 'application/json',
+            ...(options.headers || {})
+        },
+        ...options
     });
 
-    // --- 1. CONFIGURATION & MAPPING ---
-    const branchCodes = {
-        'BAR': 'Architecture',
-        'BCE': 'Civil Engineering',
-        'BCH': 'Chemical Engineering',
-        'BEC': 'Electronics And Communication',
-        'BEE': 'Electrical Engineering',
-        'BMA': 'Mathematics And Computing',
-        'BME': 'Mechanical Engineering',
-        'BMS': 'Material Science',
-        'BPH': 'Engineering Physics',
-        'DCS': 'Dual Degree Computer Science',
-        'BCS': 'Computer Science',
-        'DEC': 'Dual Degree Electronics'
-    };
+    const isJson = (response.headers.get('content-type') || '').includes('application/json');
+    const payload = isJson ? await response.json() : null;
 
-    // User specified A=10 in Architecture example
-    const gradePoints = {
-        'AA': 10, 'A+': 10, 'O': 10, 'A': 10,
-        'AB': 9,
-        'BB': 8, 'B': 8,
-        'BC': 7, 'B-': 7,
-        'CC': 6, 'C': 6,
-        'CD': 5,
-        'D': 4,
-        'F': 0, 'I': 0
-    };
-
-    // --- 2. DATA INITIALIZATION & FETCHING ---
-    // Global variable to hold processed student data
-    let students = []; 
-
-    async function initApp() {
-        const loader = document.getElementById('loadingOverlay');
-        const loaderText = loader.querySelector('.loading-text');
-        
-        try {
-            // Fetch data from Flask Backend
-            const res = await fetch("/documents");
-            
-            if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
-            
-            const rawData = await res.json();
-            
-            if (!Array.isArray(rawData)) {
-                throw new Error("Invalid data format received from server");
-            }
-
-            // Process the raw data into the app's format
-            students = rawData.map(doc => {
-                // Handle potential missing fields gracefully
-                const info = doc.student_info || {};
-                const roll = info.roll_number || "UNKNOWN";
-                const meta = parseRollNumber(roll);
-                const grades = calculateGrades(doc.semesters || {});
-                
-                return {
-                    year: info.year,
-                    name: info.student_name || "Unknown",
-                    roll: roll,
-                    father: info.father_name || "-",
-                    branch: meta.branch,
-                    branchFull: meta.branchName,
-                    batch: meta.batch,
-                    cgpa: grades.cgpa,
-                    sgpa: grades.sgpa,
-                    rawData: doc
-                };
-            });
-
-            // Initial Render
-            applyFilters();
-            
-            // Hide Loader with fade
-            loader.style.opacity = '0';
-            setTimeout(() => {
-                loader.style.display = 'none';
-            }, 300);
-
-        } catch (error) {
-            console.error("Data Fetch Error:", error);
-            loaderText.innerHTML = `
-                <span style="color: #ba1a1a; display: block; margin-bottom: 8px;">Connection Failed</span>
-                <span style="font-weight: 400; font-size: 13px; opacity: 0.8;">Ensure Flask backend is running on port 5000</span>
-            `;
-            loader.querySelector('.spinner').style.borderTopColor = '#ba1a1a';
-            loader.querySelector('.spinner').style.animation = 'none';
-        }
+    if (!response.ok) {
+        throw new Error(payload?.error || `Request failed (${response.status})`);
     }
 
-    // --- 3. PARSING LOGIC ---
-    
-    // Parse Roll Number to get Branch & Batch
-    function parseRollNumber(roll) {
-        // Extract first 2 digits for Admission Year (e.g., "22" from "22BEC...")
-        const admissionYearShort = roll.substring(0, 2);
-        const admissionYear = parseInt("20" + admissionYearShort);
-        
-        // Batch (Graduation Year) = Admission Year + 4
-        // Example: Roll 22 (Adm 2022) -> Batch 2026
-        // Example: Roll 20 (Adm 2020) -> Batch 2024
-        const batch = !isNaN(admissionYear) ? (admissionYear + 4).toString() : "Unknown";
-        
-        // Matches letters between numbers: 25(BAR)001
-        const match = roll.match(/^\d{2}([A-Z]+)\d+$/);
-        let branchCode = "UNK";
-        if(match && match[1]) {
-            branchCode = match[1];
-        }
-        
-        const branchName = branchCodes[branchCode] || branchCode;
-        
-        return { batch, branch: branchCode, branchName };
-    }
+    return payload;
+}
 
-    // Calculate Grades from raw semester data
-    function calculateGrades(semestersData) {
-        let totalCredits = 0;
-        let totalPoints = 0;
-        let lastSgpa = 0;
-
-        // Iterate over all semesters
-        Object.values(semestersData).forEach(sem => {
-            let semCredits = 0;
-            let semPoints = 0;
-            
-            if (sem.subjects && Array.isArray(sem.subjects)) {
-                sem.subjects.forEach(sub => {
-                    const credits = parseFloat(sub.credits) || 0;
-                    const gradeStr = sub.grade ? sub.grade.toUpperCase() : 'F';
-                    const gp = gradePoints[gradeStr] || 0;
-                    
-                    semCredits += credits;
-                    semPoints += (credits * gp);
-                });
-            }
-            
-            if(semCredits > 0) {
-                lastSgpa = semPoints / semCredits;
-                totalCredits += semCredits;
-                totalPoints += semPoints;
-            }
-        });
-
-        const cgpa = totalCredits > 0 ? (totalPoints / totalCredits) : 0;
-        
-        return { sgpa: lastSgpa, cgpa: cgpa };
-    }
-
-    // --- 4. UI LOGIC (Updated to use new data structure) ---
-
-    // Theme Logic
-    function toggleTheme() {
-        playClickSound();
-        triggerHaptic();
-        document.body.classList.toggle('dark-theme');
-        const isDark = document.body.classList.contains('dark-theme');
-        const icon = document.getElementById('themeIcon');
-        icon.textContent = isDark ? 'light_mode' : 'dark_mode';
-        
-        // If a chart is active (modal open), rebuild it with correct theme colors
-        if (performanceChart) {
-            const chartData = performanceChart.data;
-            const labels = chartData.labels;
-            const sgpaData = chartData.datasets[0].data;
-            const cgpaData = chartData.datasets[1].data;
-            renderPerformanceChart(labels, sgpaData, cgpaData);
-        }
-    }
-
-    // Date Widget
-    const dateWidget = document.getElementById('dateWidget');
-    const dNow = new Date();
-    dateWidget.innerHTML = `
-        <span class="material-symbols-rounded" style="font-size: 18px;">calendar_today</span>
-        <span>${dNow.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
+function setLoaderError(message) {
+    const loader = document.getElementById('loadingOverlay');
+    const loaderText = loader.querySelector('.loading-text');
+    loaderText.innerHTML = `
+        <span style="color: #ba1a1a; display: block; margin-bottom: 8px;">Connection Failed</span>
+        <span style="font-weight: 400; font-size: 13px; opacity: 0.8;">${escapeHtml(message)}</span>
     `;
+    loader.querySelector('.spinner').style.borderTopColor = '#ba1a1a';
+    loader.querySelector('.spinner').style.animation = 'none';
+}
 
-    // --- Helper: Shuffle ---
-    function shuffleArray(array) {
-        let currentIndex = array.length, randomIndex;
-        // While there remain elements to shuffle.
-        while (currentIndex != 0) {
-            // Pick a remaining element.
-            randomIndex = Math.floor(Math.random() * currentIndex);
-            currentIndex--;
-            // And swap it with the current element.
-            [array[currentIndex], array[randomIndex]] = [
-                array[randomIndex], array[currentIndex]];
-        }
-        return array;
+function hideLoader() {
+    const loader = document.getElementById('loadingOverlay');
+    loader.style.opacity = '0';
+    setTimeout(() => {
+        loader.style.display = 'none';
+    }, 300);
+}
+
+async function fetchStudentSummaries() {
+    const query = searchInput.value.trim();
+    const branch = document.getElementById('branchSelect').value;
+    const batch = document.getElementById('batchSelect').value;
+    const sort = document.getElementById('sortSelect').value;
+    const order = document.getElementById('orderSelect').value;
+
+    const params = new URLSearchParams({
+        branch,
+        batch,
+        sort,
+        order,
+        page: String(currentPage),
+        page_size: String(itemsPerPage)
+    });
+
+    if (query) {
+        params.set('query', query);
     }
 
-    // --- Modal Logic ---
-    function getGradePoint(grade) {
-        return gradePoints[grade ? grade.toUpperCase() : ''] || 0;
+    if (resultsAbortController) {
+        resultsAbortController.abort();
     }
+
+    resultsAbortController = new AbortController();
+    return fetchJson(`/api/students?${params.toString()}`, {
+        signal: resultsAbortController.signal
+    });
+}
+
+async function initApp() {
+    try {
+        await applyFilters();
+        hideLoader();
+    } catch (error) {
+        if (error.name === 'AbortError') return;
+        console.error('Data Fetch Error:', error);
+        setLoaderError(error.message || 'Unable to load student results.');
+    }
+}
+
+function toggleTheme() {
+    playClickSound();
+    triggerHaptic();
+    document.body.classList.toggle('dark-theme');
+    const isDark = document.body.classList.contains('dark-theme');
+    const icon = document.getElementById('themeIcon');
+    icon.textContent = isDark ? 'light_mode' : 'dark_mode';
+
+    if (performanceChart) {
+        const chartData = performanceChart.data;
+        renderPerformanceChart(
+            chartData.labels,
+            chartData.datasets[0].data,
+            chartData.datasets[1].data
+        );
+    }
+}
+
+const dateWidget = document.getElementById('dateWidget');
+const dNow = new Date();
+const dateIcon = document.createElement('span');
+dateIcon.className = 'material-symbols-rounded';
+dateIcon.style.fontSize = '18px';
+dateIcon.textContent = 'calendar_today';
+const dateText = document.createElement('span');
+dateText.textContent = dNow.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric'
+});
+dateWidget.replaceChildren(dateIcon, dateText);
+
+// --- Modal Logic ---
+function getGradePoint(grade) {
+    return gradePoints[grade ? grade.toUpperCase() : ''] || 0;
+}
 
     function toRoman(num) {
         const lookup = {M:1000,CM:900,D:500,CD:400,C:100,XC:90,L:50,XL:40,X:10,IX:9,V:5,IV:4,I:1};
@@ -429,10 +382,14 @@
         }, 450);
     }
 
-    function openResultModal(student) {
-        playClickSound();
-        triggerHaptic();
-        
+    function resetPerformanceChart() {
+        if (performanceChart) {
+            performanceChart.destroy();
+            performanceChart = null;
+        }
+    }
+
+    function showModalLoading(student) {
         const modal = document.getElementById('resultModal');
         const modalName = document.getElementById('modalStudentName');
         const modalRoll = document.getElementById('modalStudentRoll');
@@ -440,160 +397,196 @@
         const tabsRow = document.getElementById('modalTabsRow');
         const contentPanes = document.getElementById('modalContentPanes');
 
-        // Use the raw data stored in the student object
-        const data = student.rawData; 
-
-        modalName.textContent = data.student_info?.student_name || student.name;
-        modalRoll.textContent = data.student_info?.roll_number || student.roll;
-
+        modalName.textContent = student.name || 'Student Name';
+        modalRoll.textContent = student.roll || 'Roll Number';
         infoSection.innerHTML = `
             <div class="info-block">
-                <label>Father's Name</label>
-                <span>${data.student_info?.father_name || "-"}</span>
+                <label>Status</label>
+                <span>Loading result details...</span>
+            </div>
+        `;
+        tabsRow.innerHTML = '';
+        contentPanes.innerHTML = '';
+        resetPerformanceChart();
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function showModalError(message) {
+        const infoSection = document.getElementById('modalInfoSection');
+        const contentPanes = document.getElementById('modalContentPanes');
+        infoSection.innerHTML = `
+            <div class="info-block">
+                <label>Error</label>
+                <span>${escapeHtml(message)}</span>
+            </div>
+        `;
+        contentPanes.innerHTML = '';
+        resetPerformanceChart();
+    }
+
+    function populateResultModal(student, data) {
+        const modal = document.getElementById('resultModal');
+        const modalName = document.getElementById('modalStudentName');
+        const modalRoll = document.getElementById('modalStudentRoll');
+        const infoSection = document.getElementById('modalInfoSection');
+        const tabsRow = document.getElementById('modalTabsRow');
+        const contentPanes = document.getElementById('modalContentPanes');
+        const info = data.student_info || {};
+
+        modalName.textContent = info.student_name || student.name;
+        modalRoll.textContent = info.roll_number || student.roll;
+        infoSection.innerHTML = `
+            <div class="info-block">
+                <label>Academic Year</label>
+                <span>${escapeHtml(info.year || student.year || '-')}</span>
             </div>
             <div class="info-block">
                 <label>Roll Number</label>
-                <span>${data.student_info?.roll_number || student.roll}</span>
+                <span>${escapeHtml(info.roll_number || student.roll)}</span>
             </div>
             <div class="info-block">
                 <label>Branch</label>
-                <span>${student.branchFull}</span>
+                <span>${escapeHtml(info.branch_full || student.branchFull || student.branch)}</span>
             </div>
             <div class="info-block">
                 <label>Batch</label>
-                <span>${student.batch}</span>
+                <span>${escapeHtml(info.batch || student.batch || '-')}</span>
             </div>
         `;
 
         tabsRow.innerHTML = '';
         contentPanes.innerHTML = '';
+        resetPerformanceChart();
 
-        if (!data.semesters) return;
+        if (!data.semesters || Object.keys(data.semesters).length === 0) {
+            contentPanes.innerHTML = `
+                <div class="empty-state">
+                    <span class="material-symbols-rounded empty-icon">info</span>
+                    <p>No semester records are available for this student.</p>
+                </div>
+            `;
+            return;
+        }
 
-        // Sort semesters
         const semesterKeys = Object.keys(data.semesters).sort();
-        
         let cumulativePoints = 0;
         let cumulativeCredits = 0;
         let isFirst = true;
-        
         const chartLabels = [];
         const chartSGPA = [];
         const chartCGPA = [];
 
         semesterKeys.forEach((semKey, index) => {
-            const semData = data.semesters[semKey];
-            const subjects = semData.subjects || [];
+            const semData = data.semesters[semKey] || {};
+            const subjects = Array.isArray(semData.subjects) ? semData.subjects : [];
             const safeId = `sem-${index}`;
-            
-            // Format Tab Name
+
             let displaySem = semData.semester_name || semKey;
             const match = semKey.match(/S(\d+)/);
             if (match && match[1]) {
-                const semNum = parseInt(match[1], 10);
-                displaySem = `Sem ${toRoman(semNum)}`;
+                displaySem = `Sem ${toRoman(parseInt(match[1], 10))}`;
             }
-            
+
             chartLabels.push(displaySem);
-            
-            // Tab
+
             const tabBtn = document.createElement('button');
             tabBtn.className = `sem-tab ${isFirst ? 'active' : ''}`;
             tabBtn.textContent = displaySem;
-            tabBtn.onclick = () => switchTab(safeId, tabBtn);
+            tabBtn.addEventListener('click', () => switchTab(safeId, tabBtn));
             tabsRow.appendChild(tabBtn);
 
-            // Calc
             let semCredits = 0;
             let semPoints = 0;
 
-            const processedSubjects = subjects.map(sub => {
-                const credits = parseFloat(sub.credits) || 0;
-                const gp = getGradePoint(sub.grade);
+            const processedSubjects = subjects.map((subject) => {
+                const credits = parseFloat(subject.credits) || 0;
+                const gp = getGradePoint(subject.grade);
                 const points = credits * gp;
-                
+
                 semCredits += credits;
                 semPoints += points;
-                
-                return { ...sub, points, gp };
+
+                return { ...subject, credits, gp, points };
             });
 
-            const sgpi = semCredits > 0 ? (semPoints / semCredits).toFixed(2) : "0.00";
-            
+            const sgpi = semCredits > 0 ? (semPoints / semCredits).toFixed(2) : '0.00';
             cumulativeCredits += semCredits;
             cumulativePoints += semPoints;
-            const cgpa = cumulativeCredits > 0 ? (cumulativePoints / cumulativeCredits).toFixed(2) : "0.00";
-            
+            const cgpa = cumulativeCredits > 0 ? (cumulativePoints / cumulativeCredits).toFixed(2) : '0.00';
+
             chartSGPA.push(parseFloat(sgpi));
             chartCGPA.push(parseFloat(cgpa));
 
-            // Pane
             const pane = document.createElement('div');
             pane.id = safeId;
             pane.className = `sem-content-pane ${isFirst ? 'active' : ''}`;
-            
-            // WRAPPER DIV for scrolling
-            let tableHtml = `<div class="table-responsive-wrapper">`;
-            tableHtml += `
-                <table class="result-table">
-                    <thead>
-                        <tr>
-                            <th>Code</th>
-                            <th>Subject</th>
-                            <th>Cr</th>
-                            <th>Gr</th>
-                            <th style="text-align:center">Pts</th>
-                            <th style="text-align:right">Cr. Pts</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-            
-            processedSubjects.forEach(sub => {
-                const gradeDisplay = sub.grade ? sub.grade.toUpperCase() : 'F';
+
+            let tableHtml = `<div class="table-responsive-wrapper"><table class="result-table"><thead><tr><th>Code</th><th>Subject</th><th>Cr</th><th>Gr</th><th style="text-align:center">Pts</th><th style="text-align:right">Cr. Pts</th></tr></thead><tbody>`;
+
+            processedSubjects.forEach((subject) => {
+                const gradeDisplay = (subject.grade || 'F').toUpperCase();
                 tableHtml += `
                     <tr class="row-item">
-                        <td style="color: var(--md-sys-color-outline); font-weight: 500;">${sub.code}</td>
-                        <td style="font-weight: 500;">${sub.subject}</td>
-                        <td>${sub.credits}</td>
-                        <td><span class="grade-tag ${gradeDisplay}">${sub.grade}</span></td>
-                        <td style="text-align:center; font-weight: 500; opacity: 0.8;">${sub.gp}</td>
-                        <td style="text-align:right; font-weight: 600;">${sub.points}</td>
+                        <td style="color: var(--md-sys-color-outline); font-weight: 500;">${escapeHtml(subject.code || '-')}</td>
+                        <td style="font-weight: 500;">${escapeHtml(subject.subject || '-')}</td>
+                        <td>${escapeHtml(formatCompactNumber(subject.credits))}</td>
+                        <td><span class="grade-tag ${sanitizeClassName(gradeDisplay)}">${escapeHtml(gradeDisplay)}</span></td>
+                        <td style="text-align:center; font-weight: 500; opacity: 0.8;">${escapeHtml(String(subject.gp))}</td>
+                        <td style="text-align:right; font-weight: 600;">${escapeHtml(formatCompactNumber(subject.points))}</td>
                     </tr>
                 `;
             });
-            tableHtml += `</tbody></table></div>`; // Close wrapper
-            
+
+            tableHtml += `</tbody></table></div>`;
             tableHtml += `
                 <div class="result-summary-row">
                     <div class="summary-block">
                         <span class="summary-label">SGPI</span>
-                        <span class="summary-value">${sgpi}</span>
+                        <span class="summary-value">${escapeHtml(sgpi)}</span>
                     </div>
                     <div class="summary-block end">
                         <span class="summary-label">Cumulative CGPA</span>
-                        <span class="summary-value">${cgpa}</span>
+                        <span class="summary-value">${escapeHtml(cgpa)}</span>
                     </div>
                 </div>
             `;
 
             pane.innerHTML = tableHtml;
             contentPanes.appendChild(pane);
-            
             isFirst = false;
         });
-        
+
         renderPerformanceChart(chartLabels, chartSGPA, chartCGPA);
         modal.classList.add('open');
         document.body.style.overflow = 'hidden';
 
-        // Trigger a second resize after the modal's CSS transition finishes
-        // to ensure the chart fits correctly in the now-visible container
         setTimeout(() => {
             if (performanceChart) {
                 performanceChart.resize();
             }
         }, 500);
+    }
+
+    async function openResultModal(student) {
+        playClickSound();
+        triggerHaptic();
+        showModalLoading(student);
+
+        try {
+            if (!studentDetailsCache.has(student.roll)) {
+                const payload = await fetchJson(`/api/students/${encodeURIComponent(student.roll)}`);
+                studentDetailsCache.set(student.roll, payload.student);
+            }
+
+            const detail = studentDetailsCache.get(student.roll);
+            student.rawData = detail;
+            populateResultModal(student, detail);
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            console.error('Student Detail Error:', error);
+            showModalError(error.message || 'Unable to load student details.');
+        }
     }
     
     function switchTab(targetId, btnElement) {
@@ -626,28 +619,33 @@
         return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     }
 
-    function updateStats(data) {
+    function updateStats(stats = {}) {
         const statTotal = document.getElementById('statTotal');
         const statAvg = document.getElementById('statAvg');
         const statTop = document.getElementById('statTop');
 
-        if (data.length === 0) {
-            statTotal.textContent = "0";
-            statAvg.textContent = "0.00";
-            statTop.textContent = "-";
-            return;
-        }
+        statTotal.textContent = String(stats.total_students ?? 0);
+        statAvg.textContent = formatFixedNumber(stats.average_cgpa ?? 0);
+        statTop.textContent = stats.top_performer || '-';
+    }
 
-        statTotal.textContent = data.length;
-        const totalCGPA = data.reduce((sum, s) => sum + s.cgpa, 0);
-        statAvg.textContent = (totalCGPA / data.length).toFixed(2);
-        const sortedByScore = [...data].sort((a,b) => b.cgpa - a.cgpa);
-        statTop.textContent = sortedByScore[0].name.split(' ')[0];
+    function renderApiError(message) {
+        paginationContainer.innerHTML = '';
+        resultsGrid.innerHTML = `
+            <div class="empty-state">
+                <span class="material-symbols-rounded empty-icon">warning</span>
+                <p>${escapeHtml(message)}</p>
+            </div>
+        `;
+    }
+
+    function setResultsBusy(isBusy) {
+        resultsGrid.setAttribute('aria-busy', String(isBusy));
     }
 
     function renderCards(data, startIndex = 0) {
         resultsGrid.innerHTML = '';
-        
+
         if (data.length === 0) {
             resultsGrid.innerHTML = `
                 <div class="empty-state">
@@ -662,96 +660,106 @@
 
         data.forEach((student, index) => {
             const card = document.createElement('div');
-            card.className = `student-card`;
-            const delay = index < 20 ? index * (isMobile ? 30 : 50) : 0; 
+            card.className = 'student-card';
+            card.setAttribute('role', 'button');
+            card.tabIndex = 0;
+            const delay = index < 20 ? index * (isMobile ? 30 : 50) : 0;
             card.style.animationDelay = `${delay}ms`;
-            
+
             const rank = startIndex + index + 1;
+            const studentName = escapeHtml(student.name || 'Unknown');
+            const studentRoll = escapeHtml(student.roll || '-');
+            const studentBranch = escapeHtml(student.branch || '-');
+            const studentBatch = escapeHtml(student.batch || '-');
+            const studentInitials = escapeHtml(getInitials(student.name));
+            const studentCgpa = escapeHtml(formatFixedNumber(student.cgpa));
+            const studentSgpa = escapeHtml(formatFixedNumber(student.sgpa));
+
             let rankClass = 'rank-badge';
             if (rank === 1) rankClass += ' rank-1';
             else if (rank === 2) rankClass += ' rank-2';
             else if (rank === 3) rankClass += ' rank-3';
 
             if (isMobile) {
-                // --- MOBILE: Horizontal list card ---
                 let mobileRankClass = 'mobile-rank-badge';
                 if (rank === 1) mobileRankClass += ' rank-1';
                 else if (rank === 2) mobileRankClass += ' rank-2';
                 else if (rank === 3) mobileRankClass += ' rank-3';
 
                 card.innerHTML = `
-                    <div class="card-avatar">${getInitials(student.name)}</div>
-                    
+                    <div class="card-avatar">${studentInitials}</div>
                     <div class="card-info-area">
-                        <div class="card-name">${student.name}</div>
-                        <div class="card-roll">${student.roll}</div>
+                        <div class="card-name">${studentName}</div>
+                        <div class="card-roll">${studentRoll}</div>
                         <div class="mobile-meta-row">
                             <span class="${mobileRankClass}">#${rank}</span>
-                            <span class="mobile-branch-tag">${student.branch}</span>
+                            <span class="mobile-branch-tag">${studentBranch}</span>
                         </div>
                     </div>
-                    
                     <div class="card-stats-row">
                         <div class="stat-box" style="background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container);">
-                            <span class="stat-box-value" style="color: inherit;">${student.cgpa.toFixed(2)}</span>
+                            <span class="stat-box-value" style="color: inherit;">${studentCgpa}</span>
                             <span class="stat-box-label" style="color: inherit;">CGPA</span>
                         </div>
                         <div class="stat-box">
-                            <span class="stat-box-value">${student.sgpa.toFixed(2)}</span>
+                            <span class="stat-box-value">${studentSgpa}</span>
                             <span class="stat-box-label">SGPA</span>
                         </div>
                     </div>
                 `;
             } else {
-                // --- DESKTOP: Square card ---
                 card.innerHTML = `
                     <div class="card-header-row">
                         <div class="${rankClass}">#${rank}</div>
                         <div style="display:flex; gap:4px;">
-                            <span class="mini-badge">${student.branch}</span>
-                            <span class="mini-badge" style="opacity:0.8">${student.batch}</span>
+                            <span class="mini-badge">${studentBranch}</span>
+                            <span class="mini-badge" style="opacity:0.8">${studentBatch}</span>
                         </div>
                     </div>
-                    
-                    <div class="card-avatar">${getInitials(student.name)}</div>
-                    
+                    <div class="card-avatar">${studentInitials}</div>
                     <div class="card-info-area">
-                        <div class="card-name">${student.name}</div>
-                        <div class="card-roll">${student.roll}</div>
+                        <div class="card-name">${studentName}</div>
+                        <div class="card-roll">${studentRoll}</div>
                     </div>
-                    
                     <div class="card-stats-row">
                         <div class="stat-box">
-                            <span class="stat-box-value">${student.sgpa.toFixed(2)}</span>
+                            <span class="stat-box-value">${studentSgpa}</span>
                             <span class="stat-box-label">SGPA</span>
                         </div>
                         <div class="stat-box" style="background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container);">
-                            <span class="stat-box-value" style="color: inherit;">${student.cgpa.toFixed(2)}</span>
+                            <span class="stat-box-value" style="color: inherit;">${studentCgpa}</span>
                             <span class="stat-box-label" style="color: inherit;">CGPA</span>
                         </div>
                     </div>
                 `;
             }
-            
-            card.onclick = () => openResultModal(student);
 
-            // 3D tilt effect only on desktop
+            card.addEventListener('click', () => {
+                void openResultModal(student);
+            });
+            card.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    void openResultModal(student);
+                }
+            });
+
             if (!isMobile) {
-                card.addEventListener('mousemove', (e) => {
+                card.addEventListener('mousemove', (event) => {
                     card.style.transition = 'none';
                     const rect = card.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
+                    const x = event.clientX - rect.left;
+                    const y = event.clientY - rect.top;
                     const centerX = rect.width / 2;
                     const centerY = rect.height / 2;
-                    const rotateX = ((y - centerY) / centerY) * -6; 
+                    const rotateX = ((y - centerY) / centerY) * -6;
                     const rotateY = ((x - centerX) / centerX) * 6;
                     card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
                 });
 
                 card.addEventListener('mouseleave', () => {
                     card.style.transition = 'transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)';
-                    card.style.transform = `perspective(1000px) rotateX(0) rotateY(0) scale(1)`;
+                    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
                 });
             }
 
@@ -759,155 +767,170 @@
         });
     }
 
-    // --- Pagination Logic ---
-    function updatePage() {
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        const pageData = allMatchingStudents.slice(startIndex, endIndex);
-        
-        // Pass startIndex to calculate correct absolute rank
-        renderCards(pageData, startIndex);
-        renderPaginationControls();
-        
-        // Scroll to top of grid when page changes (if not first load)
-        if (currentPage > 1 || allMatchingStudents.length > itemsPerPage) {
-             // Only scroll if we are down the page
-             if(window.scrollY > 200) {
-                 const container = document.querySelector('.filters-container');
-                 if(container) container.scrollIntoView({behavior: 'smooth'});
-             }
-        }
-    }
-
-    function renderPaginationControls() {
-        paginationContainer.innerHTML = '';
-        const totalPages = Math.ceil(allMatchingStudents.length / itemsPerPage);
-
-        if (totalPages <= 1) return; // No pagination needed
-
-        // Simple Numbered Pagination
-        for (let i = 1; i <= totalPages; i++) {
-            const btn = document.createElement('button');
-            btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
-            btn.textContent = i;
-            btn.onclick = () => {
-                playClickSound();
-                triggerHaptic();
-                currentPage = i;
-                updatePage();
-            };
-            paginationContainer.appendChild(btn);
-        }
-    }
-
-    // --- Filtering ---
-    function applyFilters() {
-        const query = searchInput.value.toLowerCase().trim();
+    function updateFilterLabels() {
         const branchVal = document.getElementById('branchSelect').value;
         const batchVal = document.getElementById('batchSelect').value;
-        const sortVal = document.getElementById('sortSelect').value; 
-        const sortOrder = document.getElementById('orderSelect').value; 
-
-        // Update Labels
         const sortSelect = document.getElementById('sortSelect');
-        const sortLabel = document.getElementById('sortLabel');
-        sortLabel.textContent = "Sort by: " + sortSelect.options[sortSelect.selectedIndex].text;
+        const sortOrder = document.getElementById('orderSelect').value;
+
+        document.getElementById('sortLabel').textContent = `Sort by: ${sortSelect.options[sortSelect.selectedIndex].text}`;
 
         const orderLabel = document.getElementById('orderLabel');
         const orderIcon = document.getElementById('orderIcon');
         if (sortOrder === 'asc') {
-            orderLabel.textContent = "Ascending";
-            orderIcon.textContent = "arrow_upward";
+            orderLabel.textContent = 'Ascending';
+            orderIcon.textContent = 'arrow_upward';
         } else {
-            orderLabel.textContent = "Descending";
-            orderIcon.textContent = "arrow_downward";
+            orderLabel.textContent = 'Descending';
+            orderIcon.textContent = 'arrow_downward';
         }
 
         const branchBtn = document.getElementById('branchChipBtn');
         const branchLabel = document.getElementById('branchLabel');
         if (branchVal !== 'All') {
             branchBtn.classList.add('active');
-            branchLabel.textContent = branchVal; 
+            branchLabel.textContent = branchVal;
         } else {
             branchBtn.classList.remove('active');
-            branchLabel.textContent = "All Branches";
+            branchLabel.textContent = 'All Branches';
         }
 
         const batchBtn = document.getElementById('batchChipBtn');
         const batchLabel = document.getElementById('batchLabel');
         if (batchVal !== 'All') {
             batchBtn.classList.add('active');
-            batchLabel.textContent = "Batch " + batchVal;
+            batchLabel.textContent = `Batch ${batchVal}`;
         } else {
             batchBtn.classList.remove('active');
-            batchLabel.textContent = "All Batches";
+            batchLabel.textContent = 'All Batches';
         }
+    }
 
-        // 1. First, filter by Branch and Batch (Context)
-        let contextList = students.filter(s => {
-            const matchesBranch = branchVal === 'All' || s.branch === branchVal || (s.branch === 'ARCH' && branchVal === 'ARCH'); 
-            const matchesBatch = batchVal === 'All' || s.batch === batchVal;
-            return matchesBranch && matchesBatch;
-        });
+    async function updatePage() {
+        setResultsBusy(true);
 
-        let finalResult = [];
+        try {
+            const payload = await fetchStudentSummaries();
+            if (!payload) return null;
 
-        // 2. Logic: Search vs Random
-        if (query) {
-            finalResult = contextList.filter(s => {
-                return s.name.toLowerCase().includes(query) || s.roll.toLowerCase().includes(query);
+            allMatchingStudents = Array.isArray(payload.items) ? payload.items : [];
+            currentPage = Number(payload.page) || currentPage;
+            currentPageStart = Number(payload.page_start) || 0;
+            totalPages = Math.max(Number(payload.total_pages) || 1, 1);
+
+            updateStats(payload.stats || {});
+            renderCards(allMatchingStudents, currentPageStart);
+            renderPaginationControls();
+
+            if ((currentPage > 1 || totalPages > 1) && window.scrollY > 200) {
+                const container = document.querySelector('.filters-container');
+                if (container) {
+                    container.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+
+            return payload;
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                return null;
+            }
+
+            allMatchingStudents = [];
+            currentPageStart = 0;
+            totalPages = 1;
+            updateStats();
+            renderApiError(error.message || 'Unable to load results.');
+            throw error;
+        } finally {
+            setResultsBusy(false);
+        }
+    }
+
+    function renderPaginationControls() {
+        paginationContainer.innerHTML = '';
+        if (totalPages <= 1) return;
+
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+            btn.textContent = i;
+            btn.addEventListener('click', () => {
+                playClickSound();
+                triggerHaptic();
+                currentPage = i;
+                void updatePage().catch(() => {});
             });
-        } else {
-            if (branchVal === 'All' && batchVal === 'All') {
-                // No filters active: Show random 10
-                let shuffled = [...contextList]; 
-                shuffleArray(shuffled);
-                finalResult = shuffled.slice(0, 10);
-            } else {
-                // Filters are active: Show all matching context
-                finalResult = contextList;
-            }
+            paginationContainer.appendChild(btn);
+        }
+    }
+
+    async function applyFilters({ keepPage = false } = {}) {
+        const query = searchInput.value.trim();
+        updateFilterLabels();
+
+        if (!keepPage) {
+            currentPage = 1;
         }
 
-        // 3. Sorting
-        finalResult.sort((a, b) => {
-            let comparison = 0;
-            if (sortVal === 'cgpa') {
-                comparison = a.cgpa - b.cgpa;
-            } else if (sortVal === 'name') {
-                comparison = a.name.localeCompare(b.name);
-            } else {
-                comparison = a.roll.localeCompare(b.roll);
+        if (query && query.length < 3) {
+            if (resultsAbortController) {
+                resultsAbortController.abort();
+                resultsAbortController = null;
             }
-            return sortOrder === 'asc' ? comparison : -comparison;
-        });
 
-        // 4. Update Global State & Stats
-        allMatchingStudents = finalResult;
-        updateStats(allMatchingStudents); // Update stats based on FULL result
-        
-        // 5. Reset to Page 1 and Render
-        currentPage = 1;
-        updatePage();
+            allMatchingStudents = [];
+            currentPageStart = 0;
+            totalPages = 1;
+            updateStats();
+            renderApiError('Type at least 3 characters to search.');
+            return null;
+        }
+
+        return updatePage();
+    }
+
+    function scheduleFilters() {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+            void applyFilters().catch(() => {});
+        }, 250);
     }
 
     // --- Events ---
-    searchInput.addEventListener('input', applyFilters);
+    searchInput.addEventListener('input', scheduleFilters);
+
+    ['sortSelect', 'orderSelect', 'branchSelect', 'batchSelect'].forEach((id) => {
+        document.getElementById(id).addEventListener('change', () => {
+            playClickSound();
+            triggerHaptic();
+            void applyFilters().catch(() => {});
+        });
+    });
+
+    document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
+    document.getElementById('scrollTopBtn').addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    document.getElementById('resultModal').addEventListener('click', handleModalClick);
+    document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+
+    window.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeModal();
+        }
+    });
 
     window.addEventListener('scroll', () => {
         const container = document.getElementById('searchContainer');
         const scrollBtn = document.getElementById('scrollTopBtn');
-        
+
         if (window.scrollY > 20) container.classList.add('scrolled');
         else container.classList.remove('scrolled');
-        
-        if (scrollBtn) {
-            if (window.scrollY > 400) scrollBtn.classList.add('visible');
-            else scrollBtn.classList.remove('visible');
-        }
+
+        if (window.scrollY > 400) scrollBtn.classList.add('visible');
+        else scrollBtn.classList.remove('visible');
     });
 
-    // Re-render cards on resize (mobile <-> desktop layout switch)
     let resizeTimer;
     let lastWasMobile = window.innerWidth <= 600;
     window.addEventListener('resize', () => {
@@ -916,10 +939,9 @@
             const nowMobile = window.innerWidth <= 600;
             if (nowMobile !== lastWasMobile) {
                 lastWasMobile = nowMobile;
-                updatePage();
+                renderCards(allMatchingStudents, currentPageStart);
             }
         }, 250);
     });
 
-    // Start App
     initApp();

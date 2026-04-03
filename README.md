@@ -59,11 +59,27 @@ Make sure you have the following installed:
    git clone https://github.com/Nirusaki-Malaal/nith-results-website.git
    cd nith-results-website
    pip3 install -r requirements.txt
+   cp .env.example .env
+   # then set your real MongoDB URI and allowed origin(s) in .env
    python3 app.py
    ```
+
+### Required Environment Variables
+
+- `MONGODB_URI`: MongoDB connection string. Do not hardcode this in source files.
+- `MONGODB_DB_NAME`: Database name. Defaults to `results`.
+- `MONGODB_COLLECTION`: Collection name. Defaults to `all`.
+- `ALLOWED_ORIGINS`: Comma-separated list of trusted frontend origins allowed to call the API cross-origin. Leave unset to allow same-origin requests only.
+
+## 🔐 Security Notes
+
+- The API now serves paginated summaries instead of exposing the full result dump in one request.
+- Student detail records are fetched on demand and the public response omits extra personal fields such as father's name.
+- Rate limiting, CSP, clickjacking protection, no-store API caching, and stricter CORS controls are enabled in the Flask app.
+- If a MongoDB URI was ever committed previously, rotate that credential in MongoDB Atlas and replace it with a new secret.
 
 
 ## 📱 Flutter Client (new)
 
-A new Flutter app is now available in `nith_results_flutter/` and uses the same Flask backend endpoint (`/documents`).
+A new Flutter app is now available in `nith_results_flutter/` and can use the same Flask backend student endpoints (`/api/students`) or the compatibility alias (`/documents`).
 See `nith_results_flutter/README.md` for setup and run instructions.
