@@ -193,7 +193,7 @@ body.dark-theme .at-a-glance { background-color: rgba(255,255,255,0.08); }
    ========================================= */
 .search-container { 
     padding: 12px 24px; 
-    position: sticky; top: 0; z-index: 10; 
+    position: sticky; top: 0; z-index: 100; 
     background-color: transparent; 
     transition: all 0.35s ease; 
 }

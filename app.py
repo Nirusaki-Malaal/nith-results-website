@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, send_from_directory, Response
 from pymongo import MongoClient
 from flask_cors import CORS
 
@@ -16,11 +16,25 @@ all_docs = fetch_collection()
 def send_documents():
     return jsonify(all_docs)
 
-    
 @app.route("/")
 def home():
     name = "nirusaki"
     return render_template("index.html", username=name)
+
+# SEO Routes
+@app.route("/robots.txt")
+def robots():
+    return send_from_directory('static', 'robots.txt', mimetype='text/plain')
+
+@app.route("/sitemap.xml")
+def sitemap():
+    return send_from_directory('static', 'sitemap.xml', mimetype='application/xml')
+
+# Redirect old URLs if any
+@app.route("/results")
+@app.route("/result")
+def results_redirect():
+    return home()
 
 if __name__ == "__main__":
     fetch_collection()

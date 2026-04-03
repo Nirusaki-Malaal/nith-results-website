@@ -1,0 +1,29 @@
+# robots.txt for nithresults.xyz
+# NIT Hamirpur Results Portal
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /documents
+
+# Allow all search engine crawlers
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Yandex
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+# Sitemap location
+Sitemap: https://nithresults.xyz/sitemap.xml
+
+# Crawl-delay (optional, be nice to server)
+Crawl-delay: 1
