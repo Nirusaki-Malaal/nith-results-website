@@ -8,7 +8,15 @@ from collections import defaultdict, deque
 from functools import wraps
 from urllib.parse import urlparse
 
-from flask import Flask, abort, g, jsonify, render_template, request, send_from_directory
+from flask import (
+    Flask,
+    abort,
+    g,
+    jsonify,
+    render_template,
+    request,
+    send_from_directory,
+)
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -16,8 +24,10 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 try:
     from dotenv import load_dotenv
 except ImportError:  # Optional during bootstrap before requirements are refreshed.
+
     def load_dotenv():
         return False
+
 
 load_dotenv()
 
@@ -561,4 +571,4 @@ def results_redirect():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8001)
+    app.run(host="127.0.0.1", port=5000)
