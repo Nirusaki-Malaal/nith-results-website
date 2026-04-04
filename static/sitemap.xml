@@ -7,19 +7,33 @@
     <!-- Homepage - NITH Results Portal -->
     <url>
         <loc>https://nithresults.xyz/</loc>
-        <lastmod>2024-12-01</lastmod>
+        <lastmod>2026-04-04</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
     </url>
     
-    <!-- Branch-specific result pages (if you add them later) -->
-    <!-- 
+    <!-- About Page -->
     <url>
-        <loc>https://nithresults.xyz/branch/cse</loc>
-        <lastmod>2024-12-01</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
+        <loc>https://nithresults.xyz/about</loc>
+        <lastmod>2026-04-04</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
     </url>
-    -->
+    
+    <!-- Contact Page -->
+    <url>
+        <loc>https://nithresults.xyz/contact</loc>
+        <lastmod>2026-04-04</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    
+    <!-- Privacy Policy Page -->
+    <url>
+        <loc>https://nithresults.xyz/privacy</loc>
+        <lastmod>2026-04-04</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.5</priority>
+    </url>
     
 </urlset>

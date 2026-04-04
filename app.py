@@ -447,7 +447,7 @@ def prepare_request():
 @app.after_request
 def add_security_headers(response):
     nonce = getattr(g, "csp_nonce", "")
-    script_sources = ["'self'", "https://cdn.jsdelivr.net"]
+    script_sources = ["'self'", "https://cdn.jsdelivr.net", "https://www.googletagmanager.com"]
     if nonce:
         script_sources.append(f"'nonce-{nonce}'")
 
@@ -458,7 +458,7 @@ def add_security_headers(response):
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com data:",
             "img-src 'self' data: https:",
-            "connect-src 'self'",
+            "connect-src 'self' https://www.google-analytics.com https://analytics.google.com",
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",
@@ -555,6 +555,21 @@ def home():
     return render_template("index.html", csp_nonce=g.csp_nonce)
 
 
+@app.route("/about")
+def about():
+    return render_template("about.html", csp_nonce=g.csp_nonce)
+
+
+@app.route("/contact")
+def contact():
+    return render_template("contact.html", csp_nonce=g.csp_nonce)
+
+
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html", csp_nonce=g.csp_nonce)
+
+
 @app.route("/robots.txt")
 def robots():
     return send_from_directory("static", "robots.txt", mimetype="text/plain")
@@ -563,6 +578,11 @@ def robots():
 @app.route("/sitemap.xml")
 def sitemap():
     return send_from_directory("static", "sitemap.xml", mimetype="application/xml")
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory("static/assets", "favicon.ico", mimetype="image/x-icon")
 
 
 @app.route("/results")
