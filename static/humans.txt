@@ -1,0 +1,27 @@
+# humanstxt.org
+
+/* TEAM */
+Developer: Nirusaki
+Site: https://nithresults.xyz
+Twitter: @nirusaki
+Location: India
+
+/* THANKS */
+NIT Hamirpur Students and Faculty
+
+/* SITE */
+Last update: 2026-04-05
+Standards: HTML5, CSS3, ES6+
+Components: Flask, MongoDB, Vanilla JS
+Software: Python 3.x, Flask, PyMongo
+Security: CSP, HTTPS, Rate Limiting
+Accessibility: WCAG 2.1
+Languages: English, Hindi
+Hosting: Cloud Infrastructure
+Performance: Optimized for Speed
+
+/* PURPOSE */
+This website provides NIT Hamirpur students with instant access
+to their semester results, CGPA/SGPA calculations, and academic
+performance analytics. It aims to be faster and more user-friendly
+than the official portal while maintaining data accuracy and privacy.

@@ -36,6 +36,13 @@ app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 app.config["JSON_SORT_KEYS"] = False
 
+# Enable compression for better performance
+try:
+    from flask_compress import Compress
+    Compress(app)
+except ImportError:
+    pass  # flask-compress not installed, skip compression
+
 BRANCH_CODES = {
     "BAR": "Architecture",
     "BCE": "Civil Engineering",
@@ -469,13 +476,22 @@ def add_security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
-    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
     response.headers["Permissions-Policy"] = (
         "camera=(), microphone=(), geolocation=(), browsing-topics=()"
     )
     response.headers["Strict-Transport-Security"] = (
         "max-age=31536000; includeSubDomains"
     )
+
+    # Allow cross-origin access for SEO files and static assets
+    # Skip adding headers if already set by specific routes (like og-image)
+    if not response.headers.get("Access-Control-Allow-Origin"):
+        if request.path in ("/favicon.ico", "/sitemap.xml", "/robots.txt", "/humans.txt", "/llms.txt") or request.path.startswith("/static/"):
+            response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Cache-Control"] = "public, max-age=86400"
+        else:
+            response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
 
     if request.path.startswith(("/api/", "/documents")):
         response.headers["Cache-Control"] = "no-store, max-age=0"
@@ -552,7 +568,8 @@ def get_student_detail(roll_number):
 
 @app.route("/")
 def home():
-    return render_template("index.html", csp_nonce=g.csp_nonce)
+    response = render_template("index.html", csp_nonce=g.csp_nonce)
+    return response
 
 
 @app.route("/about")
@@ -575,6 +592,16 @@ def robots():
     return send_from_directory("static", "robots.txt", mimetype="text/plain")
 
 
+@app.route("/humans.txt")
+def humans():
+    return send_from_directory("static", "humans.txt", mimetype="text/plain")
+
+
+@app.route("/llms.txt")
+def llms():
+    return send_from_directory("static", "llms.txt", mimetype="text/plain")
+
+
 @app.route("/sitemap.xml")
 def sitemap():
     return send_from_directory("static", "sitemap.xml", mimetype="application/xml")
@@ -582,7 +609,41 @@ def sitemap():
 
 @app.route("/favicon.ico")
 def favicon():
-    return send_from_directory("static/assets", "favicon.ico", mimetype="image/x-icon")
+    response = send_from_directory("static/assets", "favicon.ico", mimetype="image/x-icon")
+    response.headers["Cache-Control"] = "public, max-age=604800, immutable"
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return response
+
+
+@app.route("/static/assets/og-image.png")
+@app.route("/static/assets/og-image.png", methods=["OPTIONS"])
+def og_image():
+    """Serve OG image with enhanced CORS headers for social media platforms"""
+    if request.method == "OPTIONS":
+        # Handle preflight requests
+        response = app.make_default_options_response()
+    else:
+        response = send_from_directory("static/assets", "og-image.png", mimetype="image/png")
+    
+    # Enhanced CORS headers for social media crawlers (Facebook, Twitter, LinkedIn, etc.)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Max-Age"] = "86400"
+    response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
+    response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    response.headers["Timing-Allow-Origin"] = "*"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@app.route("/static/sw.js")
+def service_worker():
+    response = send_from_directory("static", "sw.js", mimetype="application/javascript")
+    # Service worker should not be cached to allow updates
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Service-Worker-Allowed"] = "/"
+    return response
 
 
 @app.route("/results")

@@ -1,0 +1,67 @@
+# NITH Results - NIT Hamirpur Student Results Portal
+
+## Overview
+NITH Results (https://nithresults.xyz) is the comprehensive student results portal for National Institute of Technology (NIT) Hamirpur. This platform provides instant access to semester results, SGPA/CGPA calculations, branch-wise performance analytics, and toppers lists.
+
+## Key Features
+- **Instant Result Access**: Search and view student results by roll number or name
+- **SGPA/CGPA Calculator**: Automated grade point average calculations
+- **Branch-wise Analytics**: Performance statistics for all engineering branches
+- **Toppers Lists**: View top performers by branch and batch
+- **Performance Graphs**: Visual representation of academic performance trends
+- **Semester-wise Details**: Complete subject-wise grade breakdown
+
+## Supported Branches
+- Architecture (BAR)
+- Civil Engineering (BCE)
+- Chemical Engineering (BCH)
+- Electronics and Communication Engineering (BEC)
+- Electrical Engineering (BEE)
+- Mathematics and Computing (BMA)
+- Mechanical Engineering (BME)
+- Material Science (BMS)
+- Engineering Physics (BPH)
+- Computer Science (BCS)
+- Dual Degree Computer Science (DCS)
+- Dual Degree Electronics (DEC)
+
+## Technology Stack
+- Backend: Flask (Python)
+- Database: MongoDB
+- Frontend: Vanilla JavaScript with responsive design
+- Analytics: Google Analytics integration
+- Security: CSP headers, rate limiting, HTTPS
+
+## API Documentation
+The portal provides RESTful API endpoints:
+- `/api/students` - List and filter student results
+- `/api/students/<roll_number>` - Get detailed student information
+- Supports pagination, sorting, and filtering by branch/batch
+
+## Privacy & Data
+- No personal data is collected beyond academic records
+- All student information is publicly available academic data
+- Rate limiting prevents abuse and ensures fair usage
+- CORS-protected API endpoints
+
+## Contact & Support
+For inquiries or issues, visit the contact page at https://nithresults.xyz/contact
+
+## Author
+Developed and maintained by Nirusaki
+
+## Target Audience
+- Current NIT Hamirpur students checking their results
+- Alumni reviewing past academic performance
+- Parents monitoring student progress
+- Recruiters evaluating candidate credentials
+- Educational researchers analyzing performance trends
+
+## SEO Keywords
+NITH results, NIT Hamirpur results, NITH CGPA calculator, NITH SGPA calculator, NIT Hamirpur student results, NITH semester results, NITH branch toppers, NITH exam results, NIT Hamirpur grades, NITH marksheet, results.nith.ac.in alternative
+
+## Last Updated
+2026-04-05
+
+## License
+Educational use permitted. Academic data is publicly available information.

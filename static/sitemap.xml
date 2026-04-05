@@ -1,29 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
     
     <!-- Homepage - NITH Results Portal -->
     <url>
         <loc>https://nithresults.xyz/</loc>
-        <lastmod>2026-04-04</lastmod>
+        <lastmod>2026-04-05</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
+        <image:image>
+            <image:loc>https://nithresults.xyz/static/assets/og-image.png</image:loc>
+            <image:title>NITH Results Portal</image:title>
+            <image:caption>NIT Hamirpur Student Results and Analytics</image:caption>
+        </image:image>
     </url>
     
     <!-- About Page -->
     <url>
         <loc>https://nithresults.xyz/about</loc>
-        <lastmod>2026-04-04</lastmod>
+        <lastmod>2026-04-05</lastmod>
         <changefreq>monthly</changefreq>
-        <priority>0.7</priority>
+        <priority>0.8</priority>
     </url>
     
     <!-- Contact Page -->
     <url>
         <loc>https://nithresults.xyz/contact</loc>
-        <lastmod>2026-04-04</lastmod>
+        <lastmod>2026-04-05</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
@@ -31,7 +37,7 @@
     <!-- Privacy Policy Page -->
     <url>
         <loc>https://nithresults.xyz/privacy</loc>
-        <lastmod>2026-04-04</lastmod>
+        <lastmod>2026-04-05</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.5</priority>
     </url>

@@ -22,8 +22,27 @@ Allow: /
 User-agent: Baiduspider
 Allow: /
 
+# AI/LLM Crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
 # Sitemap location
 Sitemap: https://nithresults.xyz/sitemap.xml
+
+# LLM documentation
+# Learn more about this site at https://nithresults.xyz/llms.txt
+
+# Humans behind this site
+# https://nithresults.xyz/humans.txt
 
 # Crawl-delay (optional, be nice to server)
 Crawl-delay: 1

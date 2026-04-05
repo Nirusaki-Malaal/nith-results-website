@@ -803,16 +803,15 @@ body.dark-theme .grade-tag.D, body.dark-theme .grade-tag.F { background-color: #
 .footer-credit {
     text-align: center;
     padding: 24px;
-    padding-bottom: calc(24px + env(safe-area-inset-bottom));
     font-size: 13px;
     color: var(--md-sys-color-outline);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0.0, 0.2, 1);
+    transition: opacity 0.25s cubic-bezier(0.4, 0.0, 0.2, 1);
     opacity: 0.7;
 }
 .footer-credit span { font-weight: 700; color: var(--md-sys-color-primary); }
-.footer-credit:hover { opacity: 1; transform: scale(1.03); }
+.footer-credit:hover { opacity: 1; }
 
 /* =========================================
    LOADING
@@ -886,12 +885,11 @@ body.dark-theme .grade-tag.D, body.dark-theme .grade-tag.F { background-color: #
    ========================================= */
 .footer-credit {
     text-align: center;
-    padding: 32px 24px;
-    padding-bottom: calc(32px + env(safe-area-inset-bottom));
+    padding: 24px;
     font-size: 13px;
     color: var(--md-sys-color-outline);
     font-weight: 500;
-    transition: all 0.25s cubic-bezier(0.4, 0.0, 0.2, 1);
+    transition: opacity 0.25s cubic-bezier(0.4, 0.0, 0.2, 1);
     background: linear-gradient(to top, var(--surface-tint), transparent);
 }
 
@@ -1134,3 +1132,110 @@ body.dark-theme .grade-tag.D, body.dark-theme .grade-tag.F { background-color: #
         gap: 8px;
     }
 }
+
+/* ===================================
+   ACCESSIBILITY IMPROVEMENTS
+   =================================== */
+
+/* Skip to main content link */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    padding: 8px 16px;
+    text-decoration: none;
+    border-radius: 0 0 var(--radius-l) 0;
+    font-weight: 600;
+    z-index: 9999;
+    transition: top 0.2s ease-in-out;
+}
+
+.skip-link:focus {
+    top: 0;
+    outline: 3px solid var(--md-sys-color-primary-container);
+    outline-offset: 2px;
+}
+
+/* Enhanced focus indicators for keyboard navigation */
+*:focus-visible {
+    outline: 3px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+    outline: 3px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px var(--glow-primary);
+}
+
+/* High contrast focus for dark mode */
+body.dark-theme *:focus-visible {
+    outline-color: var(--md-sys-color-primary);
+    box-shadow: 0 0 0 4px rgba(154, 246, 183, 0.3);
+}
+
+/* Ensure minimum tap target size (44x44px) */
+button,
+a,
+input[type="button"],
+input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+/* Screen reader only text */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* ARIA live regions */
+[aria-live] {
+    position: relative;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    :root {
+        --md-sys-color-outline: #000000;
+        --md-sys-color-surface-variant: #FFFFFF;
+    }
+    
+    button,
+    a,
+    input {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Ensure sufficient color contrast */
+.low-contrast-fix {
+    color: var(--md-sys-color-on-surface);
+    background-color: var(--md-sys-color-surface);
+}
+
