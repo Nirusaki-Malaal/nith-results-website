@@ -294,7 +294,8 @@ body.dark-theme .chip.active { color: #E0E4DF; }
     padding: 0 24px; 
     display: grid; 
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); 
-    gap: 16px; 
+    gap: 16px;
+    min-height: 400px;
 }
 
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -454,7 +455,8 @@ body.dark-theme .stat-box { background-color: rgba(255,255,255,0.05); }
         padding: 0 16px; 
         display: flex;
         flex-direction: column;
-        gap: 8px; 
+        gap: 8px;
+        min-height: 300px;
     }
     
     /* Mobile card = horizontal list item */
@@ -1237,5 +1239,120 @@ input[type="submit"] {
 .low-contrast-fix {
     color: var(--md-sys-color-on-surface);
     background-color: var(--md-sys-color-surface);
+}
+
+/* =========================================
+   ABOUT PORTAL SECTION (SEO Content)
+   ========================================= */
+.about-portal-section {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 32px;
+    background: var(--card-bg);
+    border-radius: var(--radius-xl);
+    color: var(--md-sys-color-on-surface);
+    font-size: 15px;
+    line-height: 1.7;
+    border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.about-portal-section h2 {
+    color: var(--md-sys-color-primary);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.about-portal-section h3 {
+    color: var(--md-sys-color-on-surface);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 24px 0 12px 0;
+}
+
+.about-portal-section p {
+    color: var(--md-sys-color-on-surface-variant);
+    margin-bottom: 16px;
+}
+
+/* Dark mode: ensure text meets WCAG 4.5:1 contrast */
+body.dark-theme .about-portal-section p {
+    color: #C8CEC9;
+}
+
+.about-portal-section ul {
+    color: var(--md-sys-color-on-surface-variant);
+    padding-left: 24px;
+    margin-bottom: 16px;
+}
+
+body.dark-theme .about-portal-section ul {
+    color: #C8CEC9;
+}
+
+.about-portal-section li {
+    margin-bottom: 8px;
+}
+
+@media (max-width: 600px) {
+    .about-portal-section {
+        margin: 24px 16px;
+        padding: 20px;
+        border-radius: var(--radius-l);
+        font-size: 14px;
+    }
+    
+    .about-portal-section h2 {
+        font-size: 1.25rem;
+    }
+    
+    .about-portal-section h3 {
+        font-size: 1rem;
+    }
+}
+
+/* =========================================
+   ENHANCED CONTRAST FOR DARK MODE (WCAG 4.5:1)
+   ========================================= */
+
+/* Glassmorphic elements contrast fix */
+body.dark-theme .at-a-glance {
+    color: #E0E4DF;
+}
+
+body.dark-theme .search-input::placeholder {
+    color: #9CA39E;
+}
+
+body.dark-theme .chip {
+    color: #C8CEC9;
+}
+
+body.dark-theme .stat-label {
+    color: inherit;
+    opacity: 0.85;
+}
+
+body.dark-theme .card-roll {
+    color: #9CA39E;
+}
+
+body.dark-theme .stat-box-label {
+    color: #B8BFB9;
+}
+
+body.dark-theme .uni-subtitle {
+    color: #9CA39E;
+}
+
+body.dark-theme .footer-nap {
+    color: #9CA39E;
+}
+
+body.dark-theme .empty-state {
+    color: #9CA39E;
 }
 

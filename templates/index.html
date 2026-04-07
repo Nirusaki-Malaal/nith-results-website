@@ -87,6 +87,7 @@
     <link rel="canonical" href="https://nithresults.xyz/">
     <link rel="icon" type="image/png" href="/favicon.ico">
     <link rel="apple-touch-icon" href="/favicon.ico">
+    <link rel="manifest" href="/static/manifest.json">
     <link type="text/plain" rel="author" href="/humans.txt">
     
     <!-- Structured Data - Organization -->
@@ -376,9 +377,131 @@
         </div>
     </header>
     
-    <!-- SEO Content Section (visually hidden but crawlable) -->
-    <section class="seo-content" aria-hidden="true" style="position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden;">
-        <h2>About NITH Results Portal - nithresults.xyz</h2>
+    <!-- SEO Content Section REMOVED -->
+
+    <!-- Search -->
+    <main role="main" id="main-content">
+    <section class="search-container" id="searchContainer" aria-label="Search student results">
+        <div class="search-bar">
+            <span class="material-symbols-rounded search-icon" aria-hidden="true">search</span>
+            <input type="text" class="search-input" id="searchInput" placeholder="Search NITH student name or roll number..." aria-label="Search NIT Hamirpur students by name or roll number" autocomplete="off" role="searchbox">
+        </div>
+    </section>
+
+    <!-- Filter & Sort Chips -->
+    <div class="filters-container">
+        <div class="chip-wrapper">
+            <button class="chip active" id="sortChipBtn" aria-label="Sort results by roll number, CGPA, or name" aria-haspopup="listbox">
+                <span class="material-symbols-rounded chip-icon" aria-hidden="true">sort</span>
+                <span id="sortLabel">Sort by: Roll No</span>
+                <span class="material-symbols-rounded chip-icon" style="font-size: 16px;" aria-hidden="true">arrow_drop_down</span>
+            </button>
+            <select id="sortSelect" aria-label="Sort results by">
+                <option value="roll">Roll Number</option>
+                <option value="cgpa">CGPA</option>
+                <option value="name">Name</option>
+            </select>
+        </div>
+
+        <div class="chip-wrapper">
+            <button class="chip" id="orderChipBtn" aria-label="Change sort order between ascending and descending" aria-haspopup="listbox">
+                <span class="material-symbols-rounded chip-icon" id="orderIcon" aria-hidden="true">arrow_upward</span>
+                <span id="orderLabel">Ascending</span>
+                <span class="material-symbols-rounded chip-icon" style="font-size: 16px;" aria-hidden="true">arrow_drop_down</span>
+            </button>
+            <select id="orderSelect" aria-label="Sort order">
+                <option value="asc" selected>Ascending</option>
+                <option value="desc">Descending</option>
+            </select>
+        </div>
+
+        <div class="chip-wrapper">
+            <button class="chip" id="branchChipBtn" aria-label="Filter results by engineering branch" aria-haspopup="listbox">
+                <span class="material-symbols-rounded chip-icon" aria-hidden="true">category</span>
+                <span id="branchLabel">All Branches</span>
+                <span class="material-symbols-rounded chip-icon" style="font-size: 16px;" aria-hidden="true">arrow_drop_down</span>
+            </button>
+            <select id="branchSelect" aria-label="Filter by branch">
+                <option value="All">All Branches</option>
+                <option value="BAR">Architecture (BAR)</option>
+                <option value="BCS">Computer Science (BCS)</option>
+                <option value="BEC">Electronics (BEC)</option>
+                <option value="BEE">Electrical (BEE)</option>
+                <option value="BME">Mechanical (BME)</option>
+                <option value="BCE">Civil (BCE)</option>
+                <option value="BCH">Chemical (BCH)</option>
+                <option value="BMA">Maths & Computing (BMA)</option>
+                <option value="BPH">Eng. Physics (BPH)</option>
+                <option value="BMS">Material Science (BMS)</option>
+                <option value="DCS">Dual Degree CS (DCS)</option>
+                <option value="DEC">Dual Degree ECE (DEC)</option>
+            </select>
+        </div>
+
+        <div class="chip-wrapper">
+            <button class="chip" id="batchChipBtn" aria-label="Filter results by graduation batch year" aria-haspopup="listbox">
+                <span class="material-symbols-rounded chip-icon" aria-hidden="true">date_range</span>
+                <span id="batchLabel">All Batches</span>
+                <span class="material-symbols-rounded chip-icon" style="font-size: 16px;" aria-hidden="true">arrow_drop_down</span>
+            </button>
+            <select id="batchSelect" aria-label="Filter by batch year">
+                <option value="All">All Batches</option>
+                <option value="2024">2024 (Roll 20)</option>
+                <option value="2025">2025 (Roll 21)</option>
+                <option value="2026">2026 (Roll 22)</option>
+                <option value="2027">2027 (Roll 23)</option>
+                <option value="2028">2028 (Roll 24)</option>
+                <option value="2029">2029 (Roll 25)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow" role="region" aria-label="Results statistics summary">
+        <div class="stat-widget primary" role="status" aria-live="polite">
+            <span class="material-symbols-rounded stat-icon" aria-hidden="true">groups</span>
+            <div class="stat-label">Total Students</div>
+            <div class="stat-value" id="statTotal" aria-label="Total students count">0</div>
+        </div>
+        <div class="stat-widget secondary" role="status" aria-live="polite">
+            <span class="material-symbols-rounded stat-icon" aria-hidden="true">analytics</span>
+            <div class="stat-label">Average CGPA</div>
+            <div class="stat-value" id="statAvg" aria-label="Average CGPA">0.00</div>
+        </div>
+        <div class="stat-widget tertiary" role="status" aria-live="polite">
+            <span class="material-symbols-rounded stat-icon" aria-hidden="true">workspace_premium</span>
+            <div class="stat-label">Top Performer</div>
+            <div class="stat-value" id="statTop" style="font-size: 18px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" aria-label="Top performer name">-</div>
+        </div>
+    </div>
+
+    <!-- Results Grid -->
+    <section class="results-grid" id="resultsGrid" aria-label="Student results list" role="list">
+        {% if preloaded_data and preloaded_data.items %}
+            {% for student in preloaded_data.items %}
+            <article class="student-card" role="listitem">
+                <div class="card-header">
+                    <div class="card-name">{{ student.name }}</div>
+                    <div class="card-roll">{{ student.roll }}</div>
+                </div>
+                <div class="card-branch">{{ student.branchFull }}</div>
+                <div class="card-bottom">
+                    <div class="card-score">
+                        <div class="score-value">{{ student.cgpa }}</div>
+                        <div class="score-label">CGPA</div>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        {% endif %}
+    </section>
+
+    <!-- Pagination Controls -->
+    <nav id="paginationContainer" class="pagination-container" aria-label="Results pagination" role="navigation"></nav>
+    
+    <!-- SEO Content Section (About This Portal) -->
+    <section class="about-portal-section" aria-labelledby="about-heading">
+        <h2 id="about-heading">About NITH Results Portal - nithresults.xyz</h2>
         <p>Welcome to NITH Results (nithresults.xyz), the fastest and most comprehensive result portal for NIT Hamirpur students. Our platform provides instant access to NIT Hamirpur examination results, including B.Tech, M.Tech, and other programs. Unlike the official results.nith.ac.in portal, we offer advanced features like SGPA/CGPA calculator, branch-wise filtering, performance analytics, and toppers list.</p>
         
         <h3>Features of NITH Results Portal</h3>
@@ -400,108 +523,7 @@
         <h3>How to Check NITH Results</h3>
         <p>Simply visit nithresults.xyz and search by your roll number or name. Filter results by branch or batch for quick access. View detailed semester-wise grades, calculate your SGPA and CGPA, and compare with branch toppers.</p>
     </section>
-
-    <!-- Search -->
-    <main role="main" id="main-content">
-    <section class="search-container" id="searchContainer" aria-label="Search student results">
-        <div class="search-bar">
-            <span class="material-symbols-rounded search-icon" aria-hidden="true">search</span>
-            <input type="text" class="search-input" id="searchInput" placeholder="Search NITH student name or roll number..." aria-label="Search NIT Hamirpur students by name or roll number" autocomplete="off" role="searchbox">
-        </div>
-    </section>
-
-    <!-- Filter & Sort Chips -->
-    <div class="filters-container">
-        <div class="chip-wrapper">
-            <button class="chip active" id="sortChipBtn">
-                <span class="material-symbols-rounded chip-icon">sort</span>
-                <span id="sortLabel">Sort by: Roll No</span>
-                <span class="material-symbols-rounded chip-icon" style="font-size: 16px;">arrow_drop_down</span>
-            </button>
-            <select id="sortSelect">
-                <option value="roll">Roll Number</option>
-                <option value="cgpa">CGPA</option>
-                <option value="name">Name</option>
-            </select>
-        </div>
-
-        <div class="chip-wrapper">
-            <button class="chip" id="orderChipBtn">
-                <span class="material-symbols-rounded chip-icon" id="orderIcon">arrow_upward</span>
-                <span id="orderLabel">Ascending</span>
-                <span class="material-symbols-rounded chip-icon" style="font-size: 16px;">arrow_drop_down</span>
-            </button>
-            <select id="orderSelect">
-                <option value="asc" selected>Ascending</option>
-                <option value="desc">Descending</option>
-            </select>
-        </div>
-
-        <div class="chip-wrapper">
-            <button class="chip" id="branchChipBtn">
-                <span class="material-symbols-rounded chip-icon">category</span>
-                <span id="branchLabel">All Branches</span>
-                <span class="material-symbols-rounded chip-icon" style="font-size: 16px;">arrow_drop_down</span>
-            </button>
-            <select id="branchSelect">
-                <option value="All">All Branches</option>
-                <option value="BAR">Architecture (BAR)</option>
-                <option value="BCS">Computer Science (BCS)</option>
-                <option value="BEC">Electronics (BEC)</option>
-                <option value="BEE">Electrical (BEE)</option>
-                <option value="BME">Mechanical (BME)</option>
-                <option value="BCE">Civil (BCE)</option>
-                <option value="BCH">Chemical (BCH)</option>
-                <option value="BMA">Maths & Computing (BMA)</option>
-                <option value="BPH">Eng. Physics (BPH)</option>
-                <option value="BMS">Material Science (BMS)</option>
-                <option value="DCS">Dual Degree CS (DCS)</option>
-                <option value="DEC">Dual Degree ECE (DEC)</option>
-            </select>
-        </div>
-
-        <div class="chip-wrapper">
-            <button class="chip" id="batchChipBtn">
-                <span class="material-symbols-rounded chip-icon">date_range</span>
-                <span id="batchLabel">All Batches</span>
-                <span class="material-symbols-rounded chip-icon" style="font-size: 16px;">arrow_drop_down</span>
-            </button>
-            <select id="batchSelect">
-                <option value="All">All Batches</option>
-                <option value="2024">2024 (Roll 20)</option>
-                <option value="2025">2025 (Roll 21)</option>
-                <option value="2026">2026 (Roll 22)</option>
-                <option value="2027">2027 (Roll 23)</option>
-                <option value="2028">2028 (Roll 24)</option>
-                <option value="2029">2029 (Roll 25)</option>
-            </select>
-        </div>
-    </div>
-
-    <!-- Stats -->
-    <div class="stats-row" id="statsRow">
-        <div class="stat-widget primary">
-            <span class="material-symbols-rounded stat-icon">groups</span>
-            <div class="stat-label">Total Students</div>
-            <div class="stat-value" id="statTotal">0</div>
-        </div>
-        <div class="stat-widget secondary">
-            <span class="material-symbols-rounded stat-icon">analytics</span>
-            <div class="stat-label">Average CGPA</div>
-            <div class="stat-value" id="statAvg">0.00</div>
-        </div>
-        <div class="stat-widget tertiary">
-            <span class="material-symbols-rounded stat-icon">workspace_premium</span>
-            <div class="stat-label">Top Performer</div>
-            <div class="stat-value" id="statTop" style="font-size: 18px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</div>
-        </div>
-    </div>
-
-    <!-- Results Grid -->
-    <section class="results-grid" id="resultsGrid" aria-label="Student results list" role="list"></section>
-
-    <!-- Pagination Controls -->
-    <nav id="paginationContainer" class="pagination-container" aria-label="Results pagination"></nav>
+    
     </main>
 
     <!-- Footer -->
@@ -561,7 +583,7 @@
         <span class="material-symbols-rounded" style="font-size: 24px;">arrow_upward</span>
     </button>
 
-    <!-- POPUP MODAL -->
+    <!-- Popup Modal -->
     <div class="modal-overlay" id="resultModal">
         <div class="modal-card">
             <div class="modal-header">
@@ -569,8 +591,8 @@
                     <div class="modal-name" id="modalStudentName">Student Name</div>
                     <div class="modal-subtitle" id="modalStudentRoll">Roll No</div>
                 </div>
-                <button class="close-btn" id="closeModalBtn" type="button">
-                    <span class="material-symbols-rounded">close</span>
+                <button class="close-btn" id="closeModalBtn" type="button" aria-label="Close modal dialog">
+                    <span class="material-symbols-rounded" aria-hidden="true">close</span>
                 </button>
             </div>
             
@@ -600,6 +622,13 @@ if ('serviceWorker' in navigator) {
     });
 }
 </script>
+
+{% if preloaded_data %}
+<script nonce="{{ csp_nonce }}">
+    // Hydrate state for SSR routes to satisfy SEO indexing without breaking SPA
+    window.__PRELOADED_DATA__ = {{ preloaded_data|tojson|safe }};
+</script>
+{% endif %}
 
 <script nonce="{{ csp_nonce }}" src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 <script nonce="{{ csp_nonce }}" src="./static/js/script.js" defer></script>

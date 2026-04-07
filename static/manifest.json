@@ -1,0 +1,54 @@
+{
+  "name": "NITH Results - NIT Hamirpur Student Results Portal",
+  "short_name": "NITH Results",
+  "description": "Check NIT Hamirpur results instantly - semester results, SGPA/CGPA calculator, branch toppers & analytics for all NITH engineering branches.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#101412",
+  "theme_color": "#006D42",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["education", "utilities"],
+  "icons": [
+    {
+      "src": "/static/assets/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/static/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/assets/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/assets/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/static/assets/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "label": "NITH Results Portal Homepage"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

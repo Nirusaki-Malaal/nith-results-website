@@ -373,18 +373,7 @@ def build_stats(students):
     }
 
 
-def get_filtered_students():
-    query = normalize_text(request.args.get("query"), "", 120).lower()
-    branch = normalize_text(request.args.get("branch"), "All", 8).upper()
-    batch = normalize_text(request.args.get("batch"), "All", 8)
-    sort_by = normalize_text(request.args.get("sort"), "roll", 12).lower()
-    sort_order = normalize_text(request.args.get("order"), "asc", 8).lower()
-    page = max(parse_int(request.args.get("page"), 1), 1)
-    page_size = min(
-        max(parse_int(request.args.get("page_size"), DEFAULT_PAGE_SIZE), 1),
-        MAX_PAGE_SIZE,
-    )
-
+def _get_students_data(query="", branch="All", batch="All", sort_by="roll", sort_order="asc", page=1, page_size=DEFAULT_PAGE_SIZE):
     if sort_by not in ALLOWED_SORT_FIELDS:
         abort(400, description="Invalid sort field.")
 
@@ -397,6 +386,8 @@ def get_filtered_students():
             description=f"Search terms must be at least {MIN_QUERY_LENGTH} characters.",
         )
 
+    branch = branch.upper() if branch != "All" else "ALL"
+    
     summaries, _ = load_student_cache()
 
     filtered_students = [
@@ -439,6 +430,20 @@ def get_filtered_students():
         "total_count": total_count,
         "total_pages": total_pages,
     }
+
+
+def get_filtered_students():
+    query = normalize_text(request.args.get("query"), "", 120).lower()
+    branch = normalize_text(request.args.get("branch"), "All", 8).upper()
+    batch = normalize_text(request.args.get("batch"), "All", 8)
+    sort_by = normalize_text(request.args.get("sort"), "roll", 12).lower()
+    sort_order = normalize_text(request.args.get("order"), "asc", 8).lower()
+    page = max(parse_int(request.args.get("page"), 1), 1)
+    page_size = min(
+        max(parse_int(request.args.get("page_size"), DEFAULT_PAGE_SIZE), 1),
+        MAX_PAGE_SIZE,
+    )
+    return _get_students_data(query, branch, batch, sort_by, sort_order, page, page_size)
 
 
 @app.before_request
@@ -494,8 +499,13 @@ def add_security_headers(response):
             response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
 
     if request.path.startswith(("/api/", "/documents")):
-        response.headers["Cache-Control"] = "no-store, max-age=0"
-        response.headers["Pragma"] = "no-cache"
+        if request.endpoint == "list_students" and request.method == "GET":
+            response.headers["Cache-Control"] = "public, max-age=600"
+            response.headers.pop("Pragma", None)
+        else:
+            response.headers["Cache-Control"] = "no-store, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+
         response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
 
         allowed_origins = get_allowed_origins()
@@ -513,21 +523,42 @@ def add_security_headers(response):
 def handle_bad_request(error):
     if request.path.startswith(("/api/", "/documents")):
         return json_error(getattr(error, "description", "Bad request."), 400)
-    return error
+    return render_template("404.html", csp_nonce=getattr(g, "csp_nonce", "")), 400
+
+
+@app.errorhandler(403)
+def handle_forbidden(error):
+    if request.path.startswith(("/api/", "/documents")):
+        return json_error("Forbidden.", 403)
+    return render_template("403.html", csp_nonce=getattr(g, "csp_nonce", "")), 403
 
 
 @app.errorhandler(404)
 def handle_not_found(error):
     if request.path.startswith(("/api/", "/documents")):
         return json_error("Resource not found.", 404)
-    return error
+    return render_template("404.html", csp_nonce=getattr(g, "csp_nonce", "")), 404
 
 
 @app.errorhandler(429)
 def handle_too_many_requests(error):
     if request.path.startswith(("/api/", "/documents")):
         return json_error("Too many requests.", 429)
-    return error
+    return render_template("503.html", csp_nonce=getattr(g, "csp_nonce", "")), 429
+
+
+@app.errorhandler(500)
+def handle_internal_server_error(error):
+    if request.path.startswith(("/api/", "/documents")):
+        return json_error("Internal server error.", 500)
+    return render_template("500.html", csp_nonce=getattr(g, "csp_nonce", "")), 500
+
+
+@app.errorhandler(503)
+def handle_service_unavailable(error):
+    if request.path.startswith(("/api/", "/documents")):
+        return json_error("Service unavailable.", 503)
+    return render_template("503.html", csp_nonce=getattr(g, "csp_nonce", "")), 503
 
 
 @app.route("/api/students", methods=["GET"])
@@ -568,8 +599,28 @@ def get_student_detail(roll_number):
 
 @app.route("/")
 def home():
-    response = render_template("index.html", csp_nonce=g.csp_nonce)
+    response = render_template("index.html", csp_nonce=g.csp_nonce, preloaded_data=None)
     return response
+
+
+@app.route("/branch/<branch_code>")
+def branch_results(branch_code):
+    try:
+        # Preload data for specific branch
+        payload = _get_students_data(branch=branch_code.upper(), sort_by="cgpa", sort_order="desc")
+    except Exception:
+        payload = None
+    return render_template("index.html", csp_nonce=g.csp_nonce, preloaded_data=payload)
+
+
+@app.route("/batch/<batch_year>")
+def batch_results(batch_year):
+    try:
+        # Preload data for specific batch
+        payload = _get_students_data(batch=str(batch_year), sort_by="cgpa", sort_order="desc")
+    except Exception:
+        payload = None
+    return render_template("index.html", csp_nonce=g.csp_nonce, preloaded_data=payload)
 
 
 @app.route("/about")
@@ -589,22 +640,22 @@ def privacy():
 
 @app.route("/robots.txt")
 def robots():
-    return send_from_directory("static", "robots.txt", mimetype="text/plain")
+    return send_from_directory(app.static_folder, "robots.txt", mimetype="text/plain")
 
 
 @app.route("/humans.txt")
 def humans():
-    return send_from_directory("static", "humans.txt", mimetype="text/plain")
+    return send_from_directory(app.static_folder, "humans.txt", mimetype="text/plain")
 
 
 @app.route("/llms.txt")
 def llms():
-    return send_from_directory("static", "llms.txt", mimetype="text/plain")
+    return send_from_directory(app.static_folder, "llms.txt", mimetype="text/plain")
 
 
 @app.route("/sitemap.xml")
 def sitemap():
-    return send_from_directory("static", "sitemap.xml", mimetype="application/xml")
+    return send_from_directory(app.static_folder, "sitemap.xml", mimetype="application/xml")
 
 
 @app.route("/favicon.ico")

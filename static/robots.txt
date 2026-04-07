@@ -9,9 +9,13 @@ Disallow: /documents
 # Allow all search engine crawlers
 User-agent: Googlebot
 Allow: /
+Disallow: /api/
+Disallow: /documents
 
 User-agent: Bingbot
 Allow: /
+Disallow: /api/
+Disallow: /documents
 
 User-agent: DuckDuckBot
 Allow: /
