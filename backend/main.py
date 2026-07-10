@@ -2,8 +2,7 @@ from fastapi import FastAPI
 
 app = FastAPI()
 
-@app.post("/")
+@app.post("/api/random")
 async def help_message():
-    return {"hello" : "dosto"}
-
+    pass
 
