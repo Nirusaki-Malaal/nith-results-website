@@ -1,3 +1,10 @@
 *.venv
 *.env
 *__pycache__
+test_api.py
+*node_modules
+npm-debug.log*
+logs
+dist
+.pytest_cache
+.vscode
