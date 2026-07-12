@@ -38,7 +38,7 @@ class Student(Document):
                 [("student_info.roll_number", DESCENDING)],
                 name="student_info.roll_number_-1",
                 unique=True,
-            ), # Single Field Index (Binary Search Tree)
+            ) # Single Field Index (Binary Search Tree)
             # IndexModel(
             #     [
             #         ("student_info.student_name", ASCENDING),
@@ -47,3 +47,4 @@ class Student(Document):
             #     name="student_name_1_roll_number_desc",
             # ), # Compound Index
         ]
+

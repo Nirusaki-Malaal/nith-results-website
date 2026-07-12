@@ -5,6 +5,17 @@ from fastapi.responses import JSONResponse
 from pymongo import AsyncMongoClient
 from plugins.database import init_db, get_random, get_query
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from plugins.og_image import get_og_image
+from fastapi.middleware.cors import CORSMiddleware
+
+origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://[::1]:5173",
+]
+
+
 
 env_path = Path(__file__).with_name(".env")
 if env_path.exists():
@@ -16,7 +27,16 @@ class Config:
     DATABASE_NAME = os.environ.get("DATABASE_NAME")
 
 client = AsyncMongoClient(Config.MONGODB_URI)
+
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,           
+    allow_credentials=True,          
+    allow_methods=["*"],             
+    allow_headers=["*"],             
+)
 
 @app.exception_handler(StarletteHTTPException)
 async def exception_handler(_: Request , exc: StarletteHTTPException):
@@ -41,5 +61,12 @@ async def query_handler(query: str):
         return await get_query(query)
     except Exception as e:
         return {"error" : str(e)}
-    
 
+
+@app.get("/api/og/{roll}")
+async def og_handler(roll : str):
+    try:
+        await init_db(client["results"])
+        return await get_og_image(roll)
+    except Exception as e:
+        return {"error" : str(e)}

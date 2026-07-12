@@ -60,3 +60,4 @@ async def get_query(query):
         return {"students" : query_documents}
     except Exception as e:
         return {"error" : str(e)}
+    
