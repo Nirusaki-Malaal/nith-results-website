@@ -9,7 +9,7 @@ type SeoProps = {
 };
 
 const SITE = 'NITH Results';
-const BASE = 'https://nithresults.xyz';
+const BASE = typeof window !== 'undefined' ? window.location.origin : 'https://nithresults.xyz';
 
 function Seo({ title, description, path, type = 'website', roll }: SeoProps) {
   const fullTitle = path === '/' ? title : `${title} | ${SITE}`;
