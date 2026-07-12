@@ -76,10 +76,12 @@ async def draw_og_image(name , roll_no, branch,cgpa, sgpa):
         score_font = ImageFont.truetype(font_bold, 80)
     except IOError:
         try:
-            title_font = ImageFont.truetype("/usr/share/fonts/TTF/DejaVuSans-Bold.ttf", title_size)
-            subtitle_font = ImageFont.truetype("/usr/share/fonts/TTF/DejaVuSans.ttf", 32)
-            label_font = ImageFont.truetype("/usr/share/fonts/TTF/DejaVuSans.ttf", 20)
-            score_font = ImageFont.truetype("/usr/share/fonts/TTF/DejaVuSans-Bold.ttf", 80)
+            font_dejavu_bold = str(backend_dir / "assets" / "DejaVuSans-Bold.ttf")
+            font_dejavu_regular = str(backend_dir / "assets" / "DejaVuSans.ttf")
+            title_font = ImageFont.truetype(font_dejavu_bold, title_size)
+            subtitle_font = ImageFont.truetype(font_dejavu_regular, 32)
+            label_font = ImageFont.truetype(font_dejavu_regular, 20)
+            score_font = ImageFont.truetype(font_dejavu_bold, 80)
         except IOError:
             title_font = ImageFont.load_default()
             subtitle_font = ImageFont.load_default()
