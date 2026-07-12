@@ -8,3 +8,8 @@ logs
 dist
 .pytest_cache
 .vscode
+prompts.txt
+*.ttf
+*.venv
+*__pycache__
+*.env
