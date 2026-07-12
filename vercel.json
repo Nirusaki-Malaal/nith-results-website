@@ -19,6 +19,10 @@
       "dest": "api/index.py"
     },
     {
+      "src": "/share/(.*)",
+      "dest": "api/index.py"
+    },
+    {
       "src": "/(.*)",
       "dest": "$1"
     }

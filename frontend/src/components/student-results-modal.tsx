@@ -60,7 +60,7 @@ function StudentResultsModal({ isOpen, onClose, student, branchName }: StudentRe
 
   const handleShare = () => {
     if (!student) return;
-    const shareUrl = `${window.location.origin}/?roll=${student.student_info.roll_number}`;
+    const shareUrl = `${window.location.origin}/share/${student.student_info.roll_number.toUpperCase()}`;
     const shareData = {
       title: `${student.student_info.student_name}'s Results`,
       text: `Check out semester results, SGPA, and CGPA for ${student.student_info.student_name} (${student.student_info.roll_number}) on NITH Results Portal:`,
