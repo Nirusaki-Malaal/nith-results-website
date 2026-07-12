@@ -237,7 +237,7 @@ function Home() {
     <div className="app-container" itemScope itemType="https://schema.org/WebPage">
       <Seo
         title="NITH Results | NIT Hamirpur Student Results Portal"
-        description="Check NIT Hamirpur semester results, SGPA, CGPA, branch-wise rankings and performance analytics. Unofficial student results portal for all B.Tech and Dual Degree programs."
+        description="Check NIT Hamirpur student results, SGPA, CGPA, rankings, and analytics. Unofficial portal for B.Tech and Dual Degree programs."
         path="/"
         roll={rollParam || undefined}
       />
