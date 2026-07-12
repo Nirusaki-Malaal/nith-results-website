@@ -6,9 +6,7 @@ type StudentResponse = {
 };
 
 function apiUrl(path: string) {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  if (!backendUrl) throw new Error('VITE_BACKEND_URL is not configured.');
-
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || window.location.origin;
   return new URL(path, backendUrl).toString();
 }
 
