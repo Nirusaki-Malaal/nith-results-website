@@ -57,9 +57,9 @@ async def draw_og_image(name , roll_no, branch,cgpa, sgpa):
 
     from pathlib import Path
     backend_dir = Path(__file__).resolve().parent.parent
-    font_bold = str(backend_dir / "Outfit-Bold.ttf")
-    font_medium = str(backend_dir / "Outfit-Medium.ttf")
-    font_regular = str(backend_dir / "Outfit-Regular.ttf")
+    font_bold = str(backend_dir / "assets" / "Outfit-Bold.ttf")
+    font_medium = str(backend_dir / "assets" / "Outfit-Medium.ttf")
+    font_regular = str(backend_dir / "assets" / "Outfit-Regular.ttf")
 
     name_len = len(name)
     if name_len > 25:
