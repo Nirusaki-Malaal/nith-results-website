@@ -1,0 +1,55 @@
+# NITH Results
+
+> An unofficial NIT Hamirpur student results portal for browsing semester results, SGPA, CGPA, branch-wise rankings and performance analytics.
+
+## About
+
+NITH Results (nithresults.xyz) is an unofficial result portal for students of the National Institute of Technology Hamirpur. It provides a faster, more user-friendly way to access examination results compared to the official portal.
+
+## Pages
+
+- [Home](https://nithresults.xyz/): Search and browse student results with filters for branch, batch, sort order. View SGPA, CGPA, and semester-wise performance charts.
+- [About](https://nithresults.xyz/about): Information about the portal, its mission, key features, and available branches.
+- [Contact](https://nithresults.xyz/contact): Contact information, social links, and frequently asked questions.
+- [Privacy Policy](https://nithresults.xyz/privacy): How we collect, use, and protect user data.
+
+## Features
+
+- Instant result lookup by roll number or student name
+- SGPA and CGPA calculation for all semesters
+- Branch-wise filtering (CSE, ECE, EE, ME, CE, CH, AR, MA, PH, MS, DCS, DEC)
+- Batch-wise filtering by graduation year
+- Semester-wise performance line charts
+- Dark mode support
+- Mobile responsive design
+
+## API
+
+- `GET /api/random` — Returns 10 random sample students
+- `POST /api/query?query=<term>` — Returns students matching the search term
+
+## Branches Covered
+
+- Computer Science Engineering (BCS)
+- Electronics and Communication Engineering (BEC)
+- Electrical Engineering (BEE)
+- Mechanical Engineering (BME)
+- Civil Engineering (BCE)
+- Chemical Engineering (BCH)
+- Architecture (BAR)
+- Mathematics and Computing (BMA)
+- Engineering Physics (BPH)
+- Material Science Engineering (BMS)
+- Dual Degree Computer Science (DCS)
+- Dual Degree Electronics (DEC)
+
+## Tech Stack
+
+- Frontend: React, TypeScript, Vite, Chart.js
+- Backend: Python, FastAPI, MongoDB
+
+## Contact
+
+- Email: nirusakimalaal@gmail.com
+- GitHub: https://github.com/nirusaki-malaal
+- Website: https://nithresults.xyz

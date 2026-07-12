@@ -1,15 +1,23 @@
-// import { useState } from 'react'
-// import reactLogo from './assets/react.svg'
-// import viteLogo from './assets/vite.svg'
-// import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
+import Home from './pages/home';
+import About from './pages/about';
+import Contact from './pages/contact';
+import Privacy from './pages/privacy';
 
 function App() {
   return (
-    <>
-      <p>HELLO WORLD</p>
-    </>
-  )
+    <HelmetProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/privacy" element={<Privacy />} />
+        </Routes>
+      </BrowserRouter>
+    </HelmetProvider>
+  );
 }
 
 export default App;

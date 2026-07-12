@@ -1,0 +1,31 @@
+.loading-overlay {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--md-sys-color-surface);
+}
+
+.loading-overlay .loader-wrapper {
+  margin-bottom: 1rem;
+}
+
+.loading-overlay__text {
+  color: var(--md-sys-color-on-surface);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-overlay {
+    transition: none;
+  }
+
+  .loading-overlay .loader {
+    animation: none;
+  }
+}

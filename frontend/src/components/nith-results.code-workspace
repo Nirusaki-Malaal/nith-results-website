@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "../../.."
+		},
+		{
+			"path": "../../../../nith-results-website-main"
+		}
+	],
+	"settings": {
+		"terminal.integrated.env.linux": {
+			"PATH": "${workspaceFolder}/backend/.venv/bin:${env:PATH}",
+			"VIRTUAL_ENV": "${workspaceFolder}/backend/.venv"
+		}
+	}
+}
