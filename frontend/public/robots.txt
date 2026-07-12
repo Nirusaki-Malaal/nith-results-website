@@ -3,4 +3,3 @@ Allow: /
 Disallow: /api/
 
 Sitemap: https://nithresults.xyz/sitemap.xml
-Humans: https://nithresults.xyz/humans.txt

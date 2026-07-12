@@ -10,10 +10,11 @@ type SeoProps = {
 
 const SITE = 'NITH Results';
 const BASE = typeof window !== 'undefined' ? window.location.origin : 'https://nithresults.xyz';
+const CANONICAL_BASE = 'https://nithresults.xyz';
 
 function Seo({ title, description, path, type = 'website', roll }: SeoProps) {
   const fullTitle = path === '/' ? title : `${title} | ${SITE}`;
-  const url = `${BASE}${path}`;
+  const url = `${CANONICAL_BASE}${path}`;
   const ogImageUrl = roll 
     ? `${BASE}/api/og/${roll.toUpperCase()}`
     : `${BASE}/assets/og-default.png`;
