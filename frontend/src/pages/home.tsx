@@ -50,7 +50,7 @@ function calculateStudentGrades(student: Student) {
     let semPoints = 0;
     sem.subjects.forEach(sub => {
       const cr = sub.credit;
-      const gp = GRADE_POINTS[sub.grade.toUpperCase()] ?? 0;
+      const gp = GRADE_POINTS[(sub.grade || '').toUpperCase()] ?? 0;
       semCredits += cr;
       semPoints += cr * gp;
     });

@@ -34,14 +34,15 @@ type ResultStatistics = {
 
 function calculateGpa(subjects: Subject[]) {
   const scoredSubjects = subjects.filter((subject) => {
-    return subject.credit > 0 && gradePoints[subject.grade.trim().toUpperCase()] !== undefined;
+    const grade = (subject.grade || '').trim().toUpperCase();
+    return subject.credit > 0 && gradePoints[grade] !== undefined;
   });
 
   const totalCredits = scoredSubjects.reduce((sum, subject) => sum + subject.credit, 0);
   if (totalCredits === 0) return null;
 
   const totalPoints = scoredSubjects.reduce((sum, subject) => {
-    const grade = subject.grade.trim().toUpperCase();
+    const grade = (subject.grade || '').trim().toUpperCase();
     return sum + subject.credit * gradePoints[grade];
   }, 0);
 

@@ -109,7 +109,7 @@ function StudentResultsModal({ isOpen, onClose, student, branchName }: StudentRe
     let semPoints = 0;
     const subjects = sem.subjects.map((sub) => {
       const credits = sub.credit;
-      const gp = GRADE_POINTS[sub.grade.toUpperCase()] ?? 0;
+      const gp = GRADE_POINTS[(sub.grade || '').toUpperCase()] ?? 0;
       const pts = credits * gp;
       semCredits += credits;
       semPoints += pts;
@@ -328,7 +328,7 @@ function StudentResultsModal({ isOpen, onClose, student, branchName }: StudentRe
                           <td style={{ color: 'var(--md-sys-color-outline)', fontWeight: 500 }}>{sub.code}</td>
                           <td style={{ fontWeight: 500 }}>{sub.subject}</td>
                           <td>{sub.credit}</td>
-                          <td><span className={`grade-tag ${sub.grade.toUpperCase()}`}>{sub.grade}</span></td>
+                          <td><span className={`grade-tag ${(sub.grade || '').toUpperCase()}`}>{sub.grade || '—'}</span></td>
                           <td style={{ textAlign: 'center', fontWeight: 500, opacity: 0.8 }}>{sub.gp}</td>
                           <td style={{ textAlign: 'right', fontWeight: 600 }}>{sub.pts}</td>
                         </tr>
