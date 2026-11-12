@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Chart from 'chart.js/auto';
-import type { Student } from '../types/student';
+import type { Semester, StudentSummary } from '../types/student';
 import Icon from './icon';
+import Loader from './loader';
 import '../styles/student-results-modal.css';
 
-export type EnrichedStudent = Student & {
+export type EnrichedStudent = StudentSummary & {
+  semesters?: Semester[];
   computed: {
     branchCode: string;
     branchFull: string;
@@ -20,6 +22,7 @@ type StudentResultsModalProps = {
   onClose: () => void;
   student: EnrichedStudent | null;
   branchName: string;
+  isLoadingDetails?: boolean;
 };
 
 const GRADE_POINTS: Record<string, number> = {
@@ -51,12 +54,19 @@ function getSemesterDisplayName(semName: string): string {
   return match && match[1] ? `Sem ${toRoman(parseInt(match[1], 10))}` : semName;
 }
 
-function StudentResultsModal({ isOpen, onClose, student, branchName }: StudentResultsModalProps) {
+function StudentResultsModal({ isOpen, onClose, student, branchName, isLoadingDetails = false }: StudentResultsModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartInstanceRef = useRef<Chart | null>(null);
   const [activeSemIndex, setActiveSemIndex] = useState<number>(0);
+  const [prevRoll, setPrevRoll] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const currentRoll = student?.student_info.roll_number ?? null;
+  if (currentRoll !== prevRoll) {
+    setPrevRoll(currentRoll);
+    setActiveSemIndex(0);
+  }
 
   const handleShare = () => {
     if (!student) return;
@@ -91,7 +101,6 @@ function StudentResultsModal({ isOpen, onClose, student, branchName }: StudentRe
     if (isOpen) {
       dialog.showModal();
       document.documentElement.classList.add('modal-open');
-      setActiveSemIndex(0);
     } else {
       dialog.close();
       document.documentElement.classList.remove('modal-open');
@@ -99,41 +108,61 @@ function StudentResultsModal({ isOpen, onClose, student, branchName }: StudentRe
     return () => { document.documentElement.classList.remove('modal-open'); };
   }, [isOpen]);
 
-  const semesters = [...(student?.semesters || [])].sort((a, b) => a.semester_name.localeCompare(b.semester_name));
+  const processedSemesters = useMemo(() => {
+    const semesters = [...(student?.semesters || [])].sort((a, b) => a.semester_name.localeCompare(b.semester_name));
 
-  let cumulativePoints = 0;
-  let cumulativeCredits = 0;
-
-  const processedSemesters = semesters.map((sem) => {
-    let semCredits = 0;
-    let semPoints = 0;
-    const subjects = sem.subjects.map((sub) => {
-      const credits = sub.credit;
-      const gp = GRADE_POINTS[(sub.grade || '').toUpperCase()] ?? 0;
-      const pts = credits * gp;
-      semCredits += credits;
-      semPoints += pts;
-      return { ...sub, gp, pts };
-    });
-
-    const sgpi = semCredits > 0 ? semPoints / semCredits : 0;
-    cumulativeCredits += semCredits;
-    cumulativePoints += semPoints;
-    const cgpa = cumulativeCredits > 0 ? cumulativePoints / cumulativeCredits : 0;
-
-    return {
-      semester_name: sem.semester_name,
-      displayName: getSemesterDisplayName(sem.semester_name),
-      subjects,
-      sgpi: sgpi.toFixed(2),
-      cgpa: cgpa.toFixed(2),
-      semCredits,
+    type Acc = {
+      items: {
+        semester_name: string;
+        displayName: string;
+        subjects: { no: number; subject: string; code: string; credit: number; grade: string; marks: number; gp: number; pts: number }[];
+        sgpi: string;
+        cgpa: string;
+        semCredits: number;
+      }[];
+      totalCredits: number;
+      totalPoints: number;
     };
-  });
 
-  const chartLabels = processedSemesters.map(s => s.displayName);
-  const chartSGPA = processedSemesters.map(s => parseFloat(s.sgpi));
-  const chartCGPA = processedSemesters.map(s => parseFloat(s.cgpa));
+    const initial: Acc = { items: [], totalCredits: 0, totalPoints: 0 };
+
+    const result = semesters.reduce((acc, sem) => {
+      const subjects = sem.subjects.map((sub) => {
+        const credits = sub.credit;
+        const gp = GRADE_POINTS[(sub.grade || '').toUpperCase()] ?? 0;
+        const pts = credits * gp;
+        return { ...sub, gp, pts };
+      });
+
+      const semCredits = subjects.reduce((sum, sub) => sum + sub.credit, 0);
+      const semPoints = subjects.reduce((sum, sub) => sum + sub.pts, 0);
+      const sgpi = semCredits > 0 ? semPoints / semCredits : 0;
+      const nextTotalCredits = acc.totalCredits + semCredits;
+      const nextTotalPoints = acc.totalPoints + semPoints;
+      const cgpa = nextTotalCredits > 0 ? nextTotalPoints / nextTotalCredits : 0;
+
+      const item = {
+        semester_name: sem.semester_name,
+        displayName: getSemesterDisplayName(sem.semester_name),
+        subjects,
+        sgpi: sgpi.toFixed(2),
+        cgpa: cgpa.toFixed(2),
+        semCredits,
+      };
+
+      return {
+        items: [...acc.items, item],
+        totalCredits: nextTotalCredits,
+        totalPoints: nextTotalPoints,
+      };
+    }, initial);
+
+    return result.items;
+  }, [student?.semesters]);
+
+  const chartLabels = useMemo(() => processedSemesters.map(s => s.displayName), [processedSemesters]);
+  const chartSGPA = useMemo(() => processedSemesters.map(s => parseFloat(s.sgpi)), [processedSemesters]);
+  const chartCGPA = useMemo(() => processedSemesters.map(s => parseFloat(s.cgpa)), [processedSemesters]);
 
   useEffect(() => {
     if (!isOpen || !canvasRef.current || chartLabels.length === 0) return;
@@ -237,7 +266,7 @@ function StudentResultsModal({ isOpen, onClose, student, branchName }: StudentRe
         chartInstanceRef.current = null;
       }
     };
-  }, [isOpen, student]);
+  }, [isOpen, chartLabels, chartSGPA, chartCGPA]);
 
   if (!student) return null;
 
@@ -285,7 +314,12 @@ function StudentResultsModal({ isOpen, onClose, student, branchName }: StudentRe
           <p><span>Roll Number</span>{student.student_info.roll_number}</p>
         </div>
 
-        {processedSemesters.length > 0 ? (
+        {isLoadingDetails && processedSemesters.length === 0 ? (
+          <div className="results-state" style={{ minHeight: '220px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <Loader size={40} />
+            <p style={{ marginTop: '1rem', color: 'var(--md-sys-color-outline)' }}>Loading semester results…</p>
+          </div>
+        ) : processedSemesters.length > 0 ? (
           <>
             <div className="semester-tabs" aria-label="Semester result tabs">
               {processedSemesters.map((sem, index) => (

@@ -12,13 +12,20 @@ export type Semester = {
   subjects: Subject[];
 };
 
-export type Student = {
-  _id?: string;
+export type StudentSummary = {
   student_info: {
     student_name: string;
     roll_number: string;
     father_name: string;
   };
-  semesters: Semester[];
   year: number;
+  degree?: string;
+  branch?: string;
+  cgpa: number;
+  sgpa: number;
+};
+
+export type Student = StudentSummary & {
+  _id?: string;
+  semesters: Semester[];
 };

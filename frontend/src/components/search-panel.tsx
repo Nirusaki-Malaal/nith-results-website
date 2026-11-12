@@ -68,7 +68,7 @@ function SearchPanel({
             Sort by: {SORT_LABELS[sortField]}
             <Icon name="arrow_drop_down" className="filter-chip__chevron" />
           </span>
-          <select value={sortField} onChange={(e) => onSortFieldChange(e.target.value as any)}>
+          <select value={sortField} onChange={(e) => onSortFieldChange(e.target.value as 'roll' | 'cgpa' | 'name')}>
             <option value="roll">Roll Number</option>
             <option value="cgpa">CGPA</option>
             <option value="name">Name</option>
@@ -81,7 +81,7 @@ function SearchPanel({
             {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
             <Icon name="arrow_drop_down" className="filter-chip__chevron" />
           </span>
-          <select value={sortOrder} onChange={(e) => onSortOrderChange(e.target.value as any)}>
+          <select value={sortOrder} onChange={(e) => onSortOrderChange(e.target.value as 'asc' | 'desc')}>
             <option value="asc">Ascending</option>
             <option value="desc">Descending</option>
           </select>
