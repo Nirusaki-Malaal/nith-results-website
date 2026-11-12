@@ -3,9 +3,10 @@ import os
 from pathlib import Path
 from fastapi.responses import JSONResponse
 from pymongo import AsyncMongoClient
-from plugins.database import init_db, get_random, get_query
+from plugins.database import init_db, get_query
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from plugins.og_image import get_og_image
+from plugins.og_image import get_og_image, not_found_og_response
+from plugins.bloom import load_roll_bloom
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from plugins.schema import Student
@@ -29,31 +30,26 @@ class Config:
     DATABASE_NAME = os.environ.get("DATABASE_NAME")
 
 client = AsyncMongoClient(Config.MONGODB_URI)
+ROLL_BLOOM = load_roll_bloom()
+ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+SUMMARY_PATH = ASSETS_DIR / "summary.json"
+SUMMARY_GZ_PATH = ASSETS_DIR / "summary.json.gz"
+SUMMARY_BYTES = SUMMARY_PATH.read_bytes() if SUMMARY_PATH.exists() else None
+SUMMARY_GZ_BYTES = SUMMARY_GZ_PATH.read_bytes() if SUMMARY_GZ_PATH.exists() else None
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,           
-    allow_credentials=True,          
-    allow_methods=["*"],             
-    allow_headers=["*"],             
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.exception_handler(StarletteHTTPException)
 async def exception_handler(_: Request , exc: StarletteHTTPException):
         return JSONResponse(status_code=exc.status_code, content={"error" : exc.status_code})
-
-@app.get("/api/random", )
-async def random_handler(response: Response):
-    try:
-        await init_db(client["results"])
-        top_10 = await get_random(quanity=10)
-        response.status_code = status.HTTP_200_OK
-        return {"students" : top_10}
-    except Exception as e:
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return {"error" : str(e)}
 
 
 @app.post("/api/query")
@@ -65,31 +61,77 @@ async def query_handler(query: str):
         return {"error" : str(e)}
 
 
+@app.get("/api/summary")
+async def summary_handler(request: Request):
+    accept_encoding = request.headers.get("accept-encoding", "")
+    headers = {
+        "Cache-Control": "public, max-age=86400, s-maxage=86400",
+        "Vary": "Accept-Encoding",
+    }
+    if SUMMARY_GZ_BYTES is not None and "gzip" in accept_encoding.lower():
+        return Response(
+            content=SUMMARY_GZ_BYTES,
+            media_type="application/json",
+            headers={**headers, "Content-Encoding": "gzip"},
+        )
+    if SUMMARY_BYTES is not None:
+        return Response(
+            content=SUMMARY_BYTES,
+            media_type="application/json",
+            headers=headers,
+        )
+    return JSONResponse(status_code=404, content={"error": "Summary cache not built"})
+
+
+@app.get("/api/student/{roll}")
+async def student_detail_handler(roll: str):
+    try:
+        roll_upper = roll.strip().upper()
+        if ROLL_BLOOM is not None and not ROLL_BLOOM.might_contain(roll_upper):
+            return JSONResponse(status_code=404, content={"error": "Student not found"})
+        await init_db(client["results"])
+        student = await Student.find_one(Student.student_info.roll_number == roll_upper)
+        if not student:
+            return JSONResponse(status_code=404, content={"error": "Student not found"})
+        return Response(
+            content=student.model_dump_json(),
+            media_type="application/json",
+            headers={"Cache-Control": "public, max-age=86400, s-maxage=86400"},
+        )
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 @app.get("/api/og/{roll}")
 async def og_handler(roll : str):
     try:
+        roll_upper = roll.strip().upper()
+        if ROLL_BLOOM is not None and not ROLL_BLOOM.might_contain(roll_upper):
+            resp = not_found_og_response()
+            if resp is not None:
+                return resp
         await init_db(client["results"])
-        return await get_og_image(roll)
+        return await get_og_image(roll_upper)
     except Exception as e:
         return {"error" : str(e)}
 
 @app.get("/share/{roll}", response_class=HTMLResponse)
 async def share_handler(roll: str, request: Request):
-    try:
-        await init_db(client["results"])
-        student = await Student.find_one(Student.student_info.roll_number == roll.upper())
-        if not student:
-            name = "Student Result Card"
-            desc = "Check NIT Hamirpur student results, SGPA, CGPA, rankings, and analytics."
-        else:
-            name = student.student_info.student_name.upper()
-            desc = f"Roll Number: {student.student_info.roll_number} | Check SGPA, CGPA, and semester-wise results."
-    except Exception:
-        name = "Student Result Card"
-        desc = "Check NIT Hamirpur student results, SGPA, CGPA, rankings, and analytics."
+    roll_upper = roll.strip().upper()
+    name = "Student Result Card"
+    desc = "Check NIT Hamirpur student results, SGPA, CGPA, rankings, and analytics."
+    if ROLL_BLOOM is None or ROLL_BLOOM.might_contain(roll_upper):
+        try:
+            await init_db(client["results"])
+            student = await Student.find_one(Student.student_info.roll_number == roll_upper)
+            if student:
+                name = student.student_info.student_name.upper()
+                desc = f"Roll Number: {student.student_info.roll_number} | Check SGPA, CGPA, and semester-wise results."
+        except Exception:
+            pass
 
     base_url = str(request.base_url).rstrip('/')
-    
+
     html_content = f"""<!doctype html>
 <html lang="en">
   <head>
