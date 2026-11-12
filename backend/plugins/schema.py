@@ -26,25 +26,24 @@ class Student(Document):
     student_info : StudentInfo
     semesters: list[Semester]
     year : int
+    degree: str
+    branch: str
+    cgpa: float
+    sgpa: float
+
 
     class Settings:
         name = "Student" # Collection Name in Database
         indexes = [
+            # Text-Index (Tokenized Search)
+            IndexModel([("student_info.student_name", ASCENDING)], name="student_name_1"),
+            # Compound Index Performs Better (Much Better)
             IndexModel(
-                [("student_info.student_name", TEXT)],
-                name="student_info.student_name_text",
-            ), # Text-Index (Tokenized Search)
-            IndexModel(
-                [("student_info.roll_number", DESCENDING)],
-                name="student_info.roll_number_-1",
-                unique=True,
-            ) # Single Field Index (Binary Search Tree)
-            # IndexModel(
-            #     [
-            #         ("student_info.student_name", ASCENDING),
-            #         ("student_info.roll_number", DESCENDING),
-            #     ],
-            #     name="student_name_1_roll_number_desc",
-            # ), # Compound Index
+                [
+                    ("year" , DESCENDING),
+                    ("degree", ASCENDING),
+                    ("branch", ASCENDING),
+                    ("student_info.roll_number" , ASCENDING)
+                ]
+            )
         ]
-
