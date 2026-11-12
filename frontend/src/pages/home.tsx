@@ -176,9 +176,6 @@ function Home() {
 
   const filteredAndSorted = useMemo(() => {
     const queryTerm = query.trim().toUpperCase();
-    if (queryTerm === '' && branch === 'All' && batch === 'All') {
-      return [];
-    }
 
     const filtered = enrichedStudents.filter(s => {
       const branchMatch = branch === 'All' || s.computed.branchCode === branch;
@@ -229,7 +226,6 @@ function Home() {
   };
 
   const getHintMessage = () => {
-    if (query === '' && branch === 'All' && batch === 'All') return 'Search a query by student name or roll number to view results.';
     return '';
   };
 
@@ -281,11 +277,7 @@ function Home() {
           error={error}
           totalResults={filteredAndSorted.length}
           searchTerm={query}
-          emptyMessage={
-            query.trim() === '' && branch === 'All' && batch === 'All'
-              ? 'Search a query to view student results.'
-              : 'No students found matching your criteria.'
-          }
+          emptyMessage="No students found matching your criteria."
         >
           {paginatedStudents.map((s, index) => (
             <StudentCard
